@@ -1,0 +1,136 @@
+'use client';
+
+import { createContext, useContext, useEffect, useState } from 'react';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase/config';
+import { useRouter, usePathname } from 'next/navigation';
+
+export interface UserProfile {
+  empresa_id?: string;
+  rol?: string;
+  nombre?: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  profile: UserProfile | null;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true });
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    let isMounted = true;
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!isMounted) return;
+      setUser(currentUser);
+      
+      let fetchedProfile: UserProfile | null = null;
+      let fetchedEmpresaData: any = null;
+
+      if (currentUser) {
+        try {
+          const docRef = doc(db, 'usuarios', currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            fetchedProfile = docSnap.data() as UserProfile;
+            setProfile(fetchedProfile);
+
+            if (fetchedProfile.empresa_id) {
+               const empresaRef = doc(db, 'empresas', fetchedProfile.empresa_id);
+               const empresaSnap = await getDoc(empresaRef);
+               if (empresaSnap.exists()) {
+                  fetchedEmpresaData = empresaSnap.data();
+               }
+            }
+          } else {
+            console.warn('Usuario sin perfil definido en Firestore.');
+            setProfile(null);
+          }
+        } catch (error) {
+          console.error("Error al obtener perfil o datos de empresa:", error);
+        }
+      } else {
+        setProfile(null);
+      }
+
+      setLoading(false);
+
+      // --- Authorization Logic ---
+      
+      // If no user, redirect to login unless already on login page
+      if (!currentUser) {
+        if (pathname !== '/login') {
+          router.push('/login');
+        }
+        return; // Stop further checks for unauthenticated users
+      }
+
+      // Let SuperAdmin through everything (if we define admin by email or role)
+      if (fetchedProfile?.rol === 'superadmin' || pathname === '/admin') {
+        // If a superadmin is on the login page, redirect to dashboard
+        if (pathname === '/login') {
+          router.push('/');
+        }
+        return; // Don't redirect superadmins away from their panel
+      }
+
+      // SaaS Paywall Logic (Block suspended/inactive tenants)
+      if (fetchedEmpresaData && fetchedEmpresaData.estado !== 'activo') {
+        // If they are not active, they can ONLY visit the subscription page (or login, which is handled above)
+        if (pathname !== '/suscripcion') {
+          console.warn('Redirecting inactive tenant to /suscripcion');
+          router.push('/suscripcion');
+          return;
+        }
+      }
+
+      // Standard user redirects
+      // If authenticated user is on login page, redirect to dashboard
+      if (currentUser && pathname === '/login') {
+        router.push('/');
+        return;
+      }
+
+      // If authenticated user is on root and company is active, redirect to dashboard
+      if (currentUser && pathname === '/') {
+        if (fetchedEmpresaData?.estado !== 'activo') {
+          router.push('/suscripcion');
+        } else {
+          router.push('/');
+        }
+        return;
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [pathname, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user && pathname !== '/login') {
+    return null;
+  }
+
+  return <AuthContext.Provider value={{ user, profile, loading }}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => useContext(AuthContext);

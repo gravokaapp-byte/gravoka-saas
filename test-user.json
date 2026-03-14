@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "localId": "TEST_UID_demo123",
+      "email": "demo@planetax.cl",
+      "emailVerified": true,
+      "passwordHash": "cGFzc3dvcmQxMjM=",
+      "salt": "c2FsdA==",
+      "displayName": "Admin Planeta X"
+    }
+  ]
+}
