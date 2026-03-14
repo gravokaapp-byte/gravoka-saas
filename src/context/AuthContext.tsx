@@ -52,6 +52,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setProfile(fetchedProfile);
 
             if (fetchedProfile.empresa_id) {
+               // Sync with cookie for Server Components
+               document.cookie = `empresa_id=${fetchedProfile.empresa_id}; path=/; max-age=3600; SameSite=Lax`;
+               
                const empresaRef = doc(db, 'empresas', fetchedProfile.empresa_id);
                const empresaSnap = await getDoc(empresaRef);
                if (empresaSnap.exists()) {
@@ -61,6 +64,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           } else {
             console.warn('Usuario sin perfil definido en Firestore.');
             setProfile(null);
+            // Clear cookie if no profile
+            document.cookie = 'empresa_id=; path=/; max-age=0';
           }
         } catch (error) {
           console.error("Error al obtener perfil o datos de empresa:", error);
@@ -127,6 +132,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       await signOut(auth);
+      // Clear cookie
+      document.cookie = 'empresa_id=; path=/; max-age=0';
       router.push('/login');
     } catch (error) {
       console.error("Error signing out:", error);
