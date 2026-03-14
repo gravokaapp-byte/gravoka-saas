@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 
+export const dynamic = 'force-dynamic';
+
 // Mercado Pago setup: Uses Environment Variable
 const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || '' });
 

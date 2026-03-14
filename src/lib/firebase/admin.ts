@@ -26,7 +26,8 @@ if (!admin.apps.length) {
   }
 }
 
-const adminAuth = admin.auth();
-const adminDb = admin.firestore();
+// Safely export services only if initialized
+const adminAuth = (admin.apps.length > 0 ? admin.auth() : null) as admin.auth.Auth;
+const adminDb = (admin.apps.length > 0 ? admin.firestore() : null) as admin.firestore.Firestore;
 
 export { adminAuth, adminDb, admin };
