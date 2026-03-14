@@ -44,7 +44,7 @@ export default function SuperAdminPage() {
       setIsLoadingData(true);
       const q = query(collection(db, 'empresas'), orderBy('creado_en', 'desc'));
       const querySnapshot = await getDocs(q);
-      const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Empresa[];
+      const docs = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Empresa[];
       setEmpresas(docs);
     } catch (error) {
       console.error("Error fetching empresas:", error);

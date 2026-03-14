@@ -34,8 +34,8 @@ export default function ClientesPage() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+        ...doc.data(),
+        id: doc.id
       })) as Client[];
       setClients(docs);
       setIsLoading(false);
