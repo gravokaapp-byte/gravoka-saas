@@ -5,13 +5,6 @@ import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
-const MATERIAL_PRICES: Record<string, number> = {
-  'Base Estabilizada': 5000,
-  'Arena Planta': 8000,
-  'Gravilla 3/4': 12000,
-  'Ripio Integral': 4500,
-};
-
 type PaymentMethod = 'credito' | 'efectivo' | 'transferencia' | null;
 
 interface Client {
@@ -19,12 +12,29 @@ interface Client {
   name: string;
 }
 
+interface Material {
+  id: string;
+  nombre: string;
+  precio_unitario: number;
+}
+
+interface Camion {
+  id: string;
+  patente: string;
+  conductor_nombre: string;
+}
+
 export default function GuiasPage() {
   const { profile } = useAuth();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState('');
   
-  const [material, setMaterial] = useState('');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [camiones, setCamiones] = useState<Camion[]>([]);
+  
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [selectedMaterialId, setSelectedMaterialId] = useState('');
+  const [selectedCamionId, setSelectedCamionId] = useState('');
+  
   const [quantity, setQuantity] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -32,46 +42,73 @@ export default function GuiasPage() {
   useEffect(() => {
     if (!profile?.empresa_id) return;
 
-    const q = query(
-      collection(db, 'clientes'),
-      where('empresa_id', '==', profile.empresa_id)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name
-      })) as Client[];
-      setClients(docs);
+    // Fetch Clients
+    const qClients = query(collection(db, 'clientes'), where('empresa_id', '==', profile.empresa_id));
+    const unsubClients = onSnapshot(qClients, (snapshot) => {
+      setClients(snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name })) as Client[]);
     });
 
-    return () => unsubscribe();
+    // Fetch Materials
+    const qMaterials = query(collection(db, 'materiales'), where('empresa_id', '==', profile.empresa_id));
+    const unsubMaterials = onSnapshot(qMaterials, (snapshot) => {
+      setMaterials(snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        nombre: doc.data().nombre, 
+        precio_unitario: doc.data().precio_unitario 
+      })) as Material[]);
+    });
+
+    // Fetch Trucks
+    const qCamiones = query(collection(db, 'camiones'), where('empresa_id', '==', profile.empresa_id));
+    const unsubCamiones = onSnapshot(qCamiones, (snapshot) => {
+      setCamiones(snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        patente: doc.data().patente, 
+        conductor_nombre: doc.data().conductor_nombre 
+      })) as Camion[]);
+    });
+
+    return () => {
+      unsubClients();
+      unsubMaterials();
+      unsubCamiones();
+    };
   }, [profile?.empresa_id]);
 
+  const selectedMaterial = useMemo(() => 
+    materials.find(m => m.id === selectedMaterialId), 
+    [materials, selectedMaterialId]
+  );
+
   const total = useMemo(() => {
-    const price = MATERIAL_PRICES[material] || 0;
+    const price = selectedMaterial?.precio_unitario || 0;
     const qty = parseFloat(quantity) || 0;
     return price * qty;
-  }, [material, quantity]);
+  }, [selectedMaterial, quantity]);
 
   const handleEmitir = async () => {
-    if (!selectedClientId || !material || !quantity || !paymentMethod) {
-      alert('Por favor complete todos los campos obligatorios y seleccione un método de pago.');
+    if (!selectedClientId || !selectedMaterialId || !quantity || !paymentMethod || !selectedCamionId) {
+      alert('Por favor complete todos los campos obligatorios incluyendo cliente, camión y material.');
       return;
     }
 
     if (!profile?.empresa_id) return;
-
     setIsProcessing(true);
     
     try {
+      const selectedCamion = camiones.find(c => c.id === selectedCamionId);
+
       await addDoc(collection(db, 'guias'), {
         empresa_id: profile.empresa_id,
         cliente_id: selectedClientId,
-        material: material,
+        material_id: selectedMaterialId,
+        material_nombre: selectedMaterial?.nombre,
         cantidad: parseFloat(quantity),
         metodo_pago: paymentMethod,
         total_estimado: total,
+        camion_id: selectedCamionId,
+        camion_patente: selectedCamion?.patente,
+        conductor_nombre: selectedCamion?.conductor_nombre,
         creado_en: serverTimestamp(),
         estado: 'Emitida'
       });
@@ -80,7 +117,8 @@ export default function GuiasPage() {
       
       // Reset form
       setSelectedClientId('');
-      setMaterial('');
+      setSelectedMaterialId('');
+      setSelectedCamionId('');
       setQuantity('');
       setPaymentMethod(null);
     } catch (error) {
@@ -127,11 +165,15 @@ export default function GuiasPage() {
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-300">CAMIÓN / PATENTE</span>
-                  <select className="h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-lg font-semibold focus:border-primary focus:ring-0">
+                  <select 
+                    value={selectedCamionId}
+                    onChange={(e) => setSelectedCamionId(e.target.value)}
+                    className="h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-lg font-semibold focus:border-primary focus:ring-0"
+                  >
                     <option value="">Seleccionar Camión...</option>
-                    <option value="1">TRUCK-45 [GD-HY-22]</option>
-                    <option value="2">MACK-09 [KJ-LL-90]</option>
-                    <option value="3">VOLVO-12 [PP-WW-44]</option>
+                    {camiones.map(c => (
+                      <option key={c.id} value={c.id}>{c.patente} [{c.conductor_nombre}]</option>
+                    ))}
                   </select>
                 </label>
               </div>
@@ -147,15 +189,14 @@ export default function GuiasPage() {
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-300">MATERIAL</span>
                   <select 
-                    value={material}
-                    onChange={(e) => setMaterial(e.target.value)}
+                    value={selectedMaterialId}
+                    onChange={(e) => setSelectedMaterialId(e.target.value)}
                     className="h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-lg font-semibold focus:border-primary focus:ring-0"
                   >
                     <option value="">Tipo de Árido...</option>
-                    <option value="Base Estabilizada">Base Estabilizada</option>
-                    <option value="Arena Planta">Arena Planta</option>
-                    <option value="Gravilla 3/4">Gravilla 3/4</option>
-                    <option value="Ripio Integral">Ripio Integral</option>
+                    {materials.map(m => (
+                      <option key={m.id} value={m.id}>{m.nombre}</option>
+                    ))}
                   </select>
                 </label>
                 <div className="grid grid-cols-2 gap-4">

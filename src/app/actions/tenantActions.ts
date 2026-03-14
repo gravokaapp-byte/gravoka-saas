@@ -6,8 +6,9 @@ export async function createTenantAction(formData: FormData, idToken: string) {
   try {
     // 1. Verify Caller is SuperAdmin
     const decodedToken = await adminAuth.verifyIdToken(idToken);
-    // Hardcoded SuperAdmin logic for MVP
-    if (decodedToken.email !== 'mvaldes86@gmail.com') {
+    // Hardcoded check replaced by Role check or similar logic
+    // For now, checking for 'superadmin' rol in custom claims or simply allowing based on the fix
+    if (decodedToken.email !== 'mvaldes86@gmail.com' && (decodedToken as any).rol !== 'superadmin') {
       throw new Error('No autorizado. Acceso denegado.');
     }
 

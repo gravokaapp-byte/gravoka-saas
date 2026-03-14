@@ -16,7 +16,7 @@ interface Empresa {
 }
 
 export default function SuperAdminPage() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const router = useRouter();
   
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
@@ -27,17 +27,16 @@ export default function SuperAdminPage() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
-    // Only allow specific email for MVP
     if (!loading) {
       if (!user) {
         router.push('/login');
-      } else if (user.email !== 'mvaldes86@gmail.com') {
+      } else if (profile?.rol !== 'superadmin') {
         router.push('/'); // Redirect normal users to their dashboard
       } else {
         fetchEmpresas();
       }
     }
-  }, [user, loading, router]);
+  }, [user, profile, loading, router]);
 
   const fetchEmpresas = async () => {
     try {
@@ -80,7 +79,7 @@ export default function SuperAdminPage() {
     }
   };
 
-  if (loading || (!user && !loading) || user?.email !== 'mvaldes86@gmail.com') {
+  if (loading || (!user && !loading) || profile?.rol !== 'superadmin') {
     return <div className="p-8">Cargando panel de administración...</div>;
   }
 
