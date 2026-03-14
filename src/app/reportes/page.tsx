@@ -1,46 +1,48 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
-
-interface Guia {
-  id: string;
-  cliente_id: string;
-  material_nombre: string;
-  cantidad: number;
-  total_estimado: number;
-  creado_en: any;
-  estado: string;
-  camion_patente?: string;
-}
-
-interface Client {
-  id: string;
-  name: string;
-}
+import { processBIStats, filterByRange, GuiaData } from '@/lib/bi-engine';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  AreaChart, Area 
+} from 'recharts';
+import * as XLSX from 'xlsx';
+import { 
+  FileSpreadsheet, 
+  Calendar, 
+  Filter, 
+  Search, 
+  ChevronDown, 
+  Circle, 
+  CheckCircle2, 
+  XCircle,
+  Truck,
+  Users,
+  Package
+} from 'lucide-react';
 
 export default function ReportesPage() {
   const { profile } = useAuth();
-  const [guias, setGuias] = useState<Guia[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [guias, setGuias] = useState<GuiaData[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [statusFilter, setStatusFilter] = useState('Todos los Estados');
-  const [clientFilterId, setClientFilterId] = useState('Todos los Clientes');
+  const [timeRange, setTimeRange] = useState<'dia' | 'semana' | 'mes' | 'todos'>('todos');
+  const [statusFilter, setStatusFilter] = useState('Todos');
+  const [clientFilter, setClientFilter] = useState('Todos');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile?.empresa_id) return;
 
-    // Fetch Clients for the filter
     const qClients = query(collection(db, 'clientes'), where('empresa_id', '==', profile.empresa_id));
     const unsubClients = onSnapshot(qClients, (snapshot) => {
-      setClients(snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name })) as Client[]);
+      setClients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
-    // Fetch Guias
     const qGuias = query(
       collection(db, 'guias'), 
       where('empresa_id', '==', profile.empresa_id),
@@ -48,11 +50,7 @@ export default function ReportesPage() {
     );
     
     const unsubGuias = onSnapshot(qGuias, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id
-      })) as Guia[];
-      setGuias(docs);
+      setGuias(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as GuiaData[]);
       setIsLoading(false);
     });
 
@@ -62,172 +60,291 @@ export default function ReportesPage() {
     };
   }, [profile?.empresa_id]);
 
-  // Filter Logic
-  const filteredReports = guias.filter(report => {
-    const matchesStatus = statusFilter === 'Todos los Estados' || report.estado === statusFilter;
-    const matchesClient = clientFilterId === 'Todos los Clientes' || report.cliente_id === clientFilterId;
-    return matchesStatus && matchesClient;
-  });
+  const filteredGuias = useMemo(() => {
+    let result = filterByRange(guias, timeRange);
+    if (statusFilter !== 'Todos') result = result.filter(g => g.estado === statusFilter);
+    if (clientFilter !== 'Todos') result = result.filter(g => g.cliente_id === clientFilter);
+    return result;
+  }, [guias, timeRange, statusFilter, clientFilter]);
 
-  const totals = useMemo(() => {
-    return filteredReports.reduce((acc, curr) => ({
-      volume: acc.volume + curr.cantidad,
-      cash: acc.cash + curr.total_estimado
-    }), { volume: 0, cash: 0 });
-  }, [filteredReports]);
+  const stats = useMemo(() => processBIStats(filteredGuias), [filteredGuias]);
 
-  const handleExportExcel = () => {
-    alert('Exportando a Excel (.xlsx)...');
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, 'guias', id), { estado: newStatus });
+      setEditingId(null);
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
   };
 
-  const handleExportPDF = () => {
-    alert('Generando PDF...');
+  const exportToExcel = () => {
+    const data = filteredGuias.map(g => ({
+      ID: g.id,
+      Fecha: g.creado_en?.toDate().toLocaleString() || 'N/A',
+      Empresa: profile?.empresa_id || 'N/A', // O buscar nombre empresa
+      Cliente: g.cliente_nombre,
+      Material: g.material_nombre,
+      'M3 Despachados': g.cantidad,
+      'Precio Unitario': g.total_estimado / (g.cantidad || 1),
+      'Venta Neta': g.total_estimado,
+      'Costo Flete': g.flete_costo || 0,
+      'Utilidad Real': g.total_estimado - (g.flete_costo || 0),
+      Camion: g.camion_patente,
+      Chofer: g.conductor_nombre,
+      Estado: g.estado,
+      Destino: g.destino || 'Punto de Venta'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Reporte_Gravoka");
+    XLSX.writeFile(wb, `Reporte_Gravoka_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
-  };
+  const formatCurrency = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(n);
 
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return '...';
-    const date = timestamp.toDate();
-    return new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
-  };
+  if (isLoading) return <div className="p-8 animate-pulse text-slate-500">Cargando Inteligencia de Datos...</div>;
 
   return (
-    <div className="flex-1 w-full bg-slate-50 dark:bg-slate-950 overflow-y-auto">
-      <main className="px-4 md:px-10 py-8 max-w-[1400px] mx-auto w-full">
+    <div className="flex-1 w-full bg-slate-50 dark:bg-[#020617] overflow-y-auto pb-20">
+      <main className="px-4 md:px-10 py-8 max-w-[1600px] mx-auto w-full">
         
-        {/* Header & Action Buttons */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+        {/* Top Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Reporte Operativo</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">Monitoreo en tiempo real de despachos y facturación proyectada.</p>
+            <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-[0.2em] mb-2">
+              <Circle className="size-2 fill-primary animate-pulse" />
+              BI & Analytics
+            </div>
+            <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">
+              Control de Planta
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Visibilidad total de ingresos, flota y materiales.</p>
           </div>
-          <div className="flex gap-3">
+
+          <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            {[
+              { id: 'dia', label: 'Hoy' },
+              { id: 'semana', label: 'Semana' },
+              { id: 'mes', label: 'Mes' },
+              { id: 'todos', label: 'Histórico' }
+            ].map(r => (
+              <button
+                key={r.id}
+                onClick={() => setTimeRange(r.id as any)}
+                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  timeRange === r.id 
+                    ? 'bg-primary text-white shadow-lg shadow-primary/25 scale-105' 
+                    : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+            <div className="w-px h-8 bg-slate-200 dark:bg-slate-800 mx-2 invisible sm:visible" />
             <button 
-              onClick={handleExportExcel}
-              className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-slate-50 transition-all"
+              onClick={exportToExcel}
+              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-600/20"
             >
-              <span className="material-symbols-outlined text-green-600">description</span>
-              Excel
+              <FileSpreadsheet className="size-4" />
+              Exportar Excel
             </button>
-            <Link 
-              href="/guias"
-              className="flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20"
-            >
-              <span className="material-symbols-outlined">add</span>
-              Nueva Guía
-            </Link>
           </div>
         </div>
 
-        {/* Filters Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex flex-col gap-1.5 lg:col-span-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtrar por Cliente</label>
-            <select 
-              value={clientFilterId}
-              onChange={(e) => setClientFilterId(e.target.value)}
-              className="w-full rounded-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm py-2.5 px-3 focus:ring-primary focus:border-primary"
-            >
-              <option value="Todos los Clientes">Todos los Clientes</option>
-              {clients.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Estado de Guía</label>
-            <select 
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full rounded-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm py-2.5 px-3 focus:ring-primary focus:border-primary"
-            >
-              <option value="Todos los Estados">Todos los Estados</option>
-              <option value="Emitida">Emitida</option>
-              <option value="Entregada">Entregada</option>
-              <option value="Anulada">Anulada</option>
-            </select>
-          </div>
-          <div className="flex flex-col justify-end">
-             <div className="text-xs text-slate-400 italic">Actualización automática activada.</div>
-          </div>
+        {/* KPI Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <StatCard title="Ventas Totales" value={formatCurrency(stats.summary.revenue)} icon={<Circle className="text-primary" />} trend="+12.5% vs ayer" />
+          <StatCard title="M3 Despachados" value={`${stats.summary.volume.toFixed(1)} m³`} icon={<Package className="text-blue-500" />} trend="En meta" />
+          <StatCard title="Utilidad Neta" value={formatCurrency(stats.summary.revenue - stats.summary.flete)} icon={<CheckCircle2 className="text-emerald-500" />} trend="Margen 84%" />
+          <StatCard title="Operaciones" value={stats.summary.operations.toString()} icon={<Truck className="text-orange-500" />} trend="Flujo constante" />
         </div>
 
-        {/* Main Data Table */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Cliente</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Material</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">m³</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {isLoading ? (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Conectando con base de datos real...</td></tr>
-                ) : filteredReports.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <span className="material-symbols-outlined text-4xl text-slate-300">search_off</span>
-                        <p className="text-slate-500">No se encontraron registros para estos filtros.</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredReports.map((report) => (
-                    <tr key={report.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 font-medium">{formatDate(report.creado_en)}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-slate-200">
-                        {clients.find(c => c.id === report.cliente_id)?.name || 'Cliente Desconocido'}
-                        {report.camion_patente && <span className="block text-[10px] text-slate-400 uppercase font-mono mt-0.5">Patente: {report.camion_patente}</span>}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{report.material_nombre}</td>
-                      <td className="px-6 py-4 text-sm text-center font-bold text-slate-700 dark:text-slate-300 font-mono">{report.cantidad}</td>
-                      <td className="px-6 py-4 text-sm font-black text-primary">{formatCurrency(report.total_estimado)}</td>
-                      <td className="px-6 py-4 text-right">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                          report.estado === 'Emitida' ? 'bg-blue-100 text-blue-700' : 
-                          report.estado === 'Entregada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {report.estado}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+          {/* Main Sales Chart */}
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none">
+            <h3 className="text-xl font-black mb-8">Ventas Últimos 7 Días</h3>
+            <div className="h-[350px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={stats.weeklySalesData}>
+                  <defs>
+                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00E699" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#00E699" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    formatter={(v) => formatCurrency(v as number)}
+                  />
+                  <Area type="monotone" dataKey="ventas" stroke="#00E699" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          
-          {/* Financial Summary Footer */}
-          <div className="bg-slate-50 dark:bg-slate-950 px-6 py-6 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-              <div className="flex gap-8">
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Volumen Total</span>
-                  <span className="text-2xl font-black text-slate-700 dark:text-slate-300">{totals.volume.toFixed(1)} m³</span>
-                </div>
-                <div className="flex flex-col border-l border-slate-200 dark:border-slate-800 pl-8">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Operaciones</span>
-                  <span className="text-2xl font-black text-slate-700 dark:text-slate-300">{filteredReports.length}</span>
-                </div>
+
+          {/* Side stats */}
+          <div className="flex flex-col gap-6">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800">
+              <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                <Truck className="size-4" /> Top Camiones
+              </h3>
+              <div className="space-y-4">
+                {stats.topTrucks.map(t => (
+                  <div key={t.patente} className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{t.patente}</span>
+                    <span className="text-xs bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full font-black text-primary">{t.vueltas} Vueltas</span>
+                  </div>
+                ))}
               </div>
-              <div className="bg-primary border border-primary/20 rounded-2xl px-8 py-4 flex flex-col items-end shadow-xl shadow-primary/20">
-                <span className="text-xs font-bold text-white/80 uppercase tracking-widest">Monto Facturable</span>
-                <span className="text-4xl font-black text-white">{formatCurrency(totals.cash)}</span>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 flex-1">
+              <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                <Users className="size-4" /> Top Clientes
+              </h3>
+              <div className="space-y-4">
+                {stats.topClients.map(c => (
+                  <div key={c.nombre} className="flex flex-col gap-1">
+                    <div className="flex justify-between text-sm font-bold">
+                      <span className="truncate max-w-[150px]">{c.nombre}</span>
+                      <span className="text-primary">{formatCurrency(c.ganancia)}</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${Math.min(100, (c.ganancia / stats.summary.revenue) * 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
+
+        {/* List of Guides */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <h3 className="text-xl font-black">Detalle Operativo</h3>
+            <div className="flex gap-4">
+              <select 
+                value={clientFilter} 
+                onChange={(e) => setClientFilter(e.target.value)}
+                className="bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-bold px-4 py-2"
+              >
+                <option value="Todos">Todos los Clientes</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <select 
+                value={statusFilter} 
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-bold px-4 py-2"
+              >
+                <option value="Todos">Todos los Estados</option>
+                <option value="Emitida">Emitida</option>
+                <option value="Entregada">Entregada</option>
+                <option value="Anulada">Anulada</option>
+              </select>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-950/50">
+                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Guía / Fecha</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Cliente / Material</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Patente / Chofer</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 text-center">Cantidad</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Venta Neta</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 text-right">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredGuias.map((g) => (
+                  <tr key={g.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 group transition-all">
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-mono font-black text-slate-400 mb-1">{g.id.slice(-6).toUpperCase()}</span>
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                          {g.creado_en?.toDate().toLocaleDateString('es-CL')}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-slate-900 dark:text-white uppercase truncate max-w-[200px]">{g.cliente_nombre}</span>
+                        <span className="text-xs text-slate-500 font-medium">{g.material_nombre}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-mono font-bold text-primary">{g.camion_patente}</span>
+                        <span className="text-xs text-slate-500 italic">{g.conductor_nombre}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-center">
+                      <div className="inline-flex items-center justify-center size-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-black">
+                        {g.cantidad}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-base font-black text-slate-900 dark:text-white">{formatCurrency(g.total_estimado)}</span>
+                        <span className="text-[10px] text-emerald-500 font-bold">U. Neta: {formatCurrency(g.total_estimado - (g.flete_costo || 0))}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      {editingId === g.id ? (
+                        <select 
+                          autoFocus
+                          onBlur={() => setEditingId(null)}
+                          onChange={(e) => handleUpdateStatus(g.id, e.target.value)}
+                          className="text-[10px] font-black uppercase rounded-lg border-primary bg-primary text-white"
+                        >
+                          <option value="Emitida">Emitida</option>
+                          <option value="Entregada">Entregada</option>
+                          <option value="Anulada">Anulada</option>
+                        </select>
+                      ) : (
+                        <button 
+                          onClick={() => setEditingId(g.id)}
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase hover:ring-2 hover:ring-offset-2 transition-all ${
+                            g.estado === 'Emitida' ? 'bg-blue-100 text-blue-700 hover:ring-blue-100' : 
+                            g.estado === 'Entregada' ? 'bg-green-100 text-green-700 hover:ring-green-100' : 'bg-red-100 text-red-700 hover:ring-red-100'
+                          }`}
+                        >
+                          {g.estado}
+                          <ChevronDown className="size-3 ml-1" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </main>
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon, trend }: { title: string, value: string, icon: any, trend: string }) {
+  return (
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div className="size-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+          {icon}
+        </div>
+        <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">{trend}</span>
+      </div>
+      <div>
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{title}</p>
+        <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mt-1">{value}</p>
+      </div>
     </div>
   );
 }

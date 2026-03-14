@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { profile, logout } = useAuth();
 
   const links = [
     { href: '/', icon: 'dashboard', label: 'Dashboard' },
@@ -13,6 +15,7 @@ export default function Sidebar() {
     { href: '/camiones', icon: 'local_shipping', label: 'Camiones' },
     { href: '/guias', icon: 'description', label: 'Guías' },
     { href: '/reportes', icon: 'bar_chart', label: 'Reportes' },
+    { href: '/configuracion', icon: 'settings', label: 'Configuración' },
   ];
 
   return (
@@ -49,12 +52,20 @@ export default function Sidebar() {
 
       <div className="p-4 border-t border-slate-custom-800">
         <div className="flex items-center gap-3 px-2">
-          <div className="size-9 rounded-full bg-slate-700 overflow-hidden" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBxj74kdSJzi1JWYO0Llnx91goxYjSEqmP1LvMR9vbOjO-yNmqSkCB3e_7uD-n85yLDlzTPzHGKrWh9Aaupo6vBHOFajZqrAaJTjYHp8Hef6CFUYxdvaWGKuhpEs5RuhPYtIBxsjR_ncMdlGsdSqizjRXbMBWzS_s1OiFTkWKcXILzjPaPw6PA_mmAcczN2YG6HQXgcwaephUZ6hzpjHbLG4obkV835kLARftAVo8ILITsWN2wr73OIf-dP6_tY_aIK5s-dUNhdGw')", backgroundPosition: "center", backgroundSize: "cover" }}></div>
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium truncate">Admin Usuario</p>
-            <p className="text-xs text-slate-500 truncate">Operaciones</p>
+          <div className="size-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
+            {profile?.nombre?.[0] || 'U'}
           </div>
-          <span className="material-symbols-outlined text-slate-500 cursor-pointer hover:text-white">logout</span>
+          <div className="flex-1 overflow-hidden">
+            <p className="text-sm font-medium truncate">{profile?.nombre || 'Usuario'}</p>
+            <p className="text-xs text-slate-500 truncate capitalize">{profile?.rol || 'Operario'}</p>
+          </div>
+          <button 
+            onClick={logout}
+            className="material-symbols-outlined text-slate-500 cursor-pointer hover:text-red-400 transition-colors"
+            title="Cerrar Sesión"
+          >
+            logout
+          </button>
         </div>
       </div>
     </aside>

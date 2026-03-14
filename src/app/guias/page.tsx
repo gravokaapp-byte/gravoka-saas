@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 
 type PaymentMethod = 'credito' | 'efectivo' | 'transferencia' | null;
 
@@ -38,9 +38,15 @@ export default function GuiasPage() {
   const [quantity, setQuantity] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [config, setConfig] = useState<any>(null);
 
   useEffect(() => {
     if (!profile?.empresa_id) return;
+
+    // Fetch Company Config
+    getDoc(doc(db, 'configuracion_empresa', profile.empresa_id)).then((snap: any) => {
+      if (snap.exists()) setConfig(snap.data());
+    });
 
     // Fetch Clients
     const qClients = query(collection(db, 'clientes'), where('empresa_id', '==', profile.empresa_id));
@@ -86,6 +92,8 @@ export default function GuiasPage() {
     return price * qty;
   }, [selectedMaterial, quantity]);
 
+  const [showToast, setShowToast] = useState(false);
+
   const handleEmitir = async () => {
     if (!selectedClientId || !selectedMaterialId || !quantity || !paymentMethod || !selectedCamionId) {
       alert('Por favor complete todos los campos obligatorios incluyendo cliente, camión y material.');
@@ -101,6 +109,7 @@ export default function GuiasPage() {
       await addDoc(collection(db, 'guias'), {
         empresa_id: profile.empresa_id,
         cliente_id: selectedClientId,
+        cliente_nombre: clients.find(c => c.id === selectedClientId)?.name || 'Anónimo',
         material_id: selectedMaterialId,
         material_nombre: selectedMaterial?.nombre,
         cantidad: parseFloat(quantity),
@@ -113,14 +122,22 @@ export default function GuiasPage() {
         estado: 'Emitida'
       });
 
-      alert('¡Guía de Despacho guardada e impresa exitosamente!');
-      
-      // Reset form
-      setSelectedClientId('');
-      setSelectedMaterialId('');
-      setSelectedCamionId('');
-      setQuantity('');
-      setPaymentMethod(null);
+      // Feedback visual
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 5000);
+
+      // Trigger Print
+      setTimeout(() => {
+        window.print();
+        
+        // Reset form after print dialog
+        setSelectedClientId('');
+        setSelectedMaterialId('');
+        setSelectedCamionId('');
+        setQuantity('');
+        setPaymentMethod(null);
+      }, 500);
+
     } catch (error) {
       console.error("Error al emitir guía", error);
       alert('Hubo un error al emitir la guía de despacho.');
@@ -289,14 +306,84 @@ export default function GuiasPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 mt-auto">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px] text-green-500">sensors</span> Sistema Online</span>
-          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">terminal</span> Terminal: PLANT-01</span>
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-10 right-10 z-[100] animate-in fade-in slide-in-from-bottom-5">
+          <div className="bg-green-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-green-500/50">
+            <span className="material-symbols-outlined text-3xl">check_circle</span>
+            <div className="flex flex-col">
+              <span className="font-bold">¡Guía Emitida!</span>
+              <span className="text-sm opacity-90">El documento se ha generado correctamente.</span>
+            </div>
+          </div>
         </div>
-        <p>© 2024 Gravoka SpA - v4.2.0</p>
-      </footer>
+      )}
+
+      {/* Hidden Print Ticket */}
+      <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-10 text-black">
+        <div className="max-w-md mx-auto border-2 border-black p-6 flex flex-col gap-4">
+          <div className="text-center border-b-2 border-dashed border-black pb-4">
+            <h1 className="text-2xl font-black uppercase text-primary">{config?.nombre_empresa || 'Gravoka SpA'}</h1>
+            <p className="text-xs font-bold">{config?.rut || 'RUT 77.XXX.XXX-X'}</p>
+            <p className="text-[10px]">{config?.direccion || 'Matriz de Operaciones'}</p>
+            <div className="mt-2 text-sm font-black border border-black p-1">GUÍA DE DESPACHO ELECTRÓNICA</div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-y-2 text-sm">
+            <span className="font-bold">FECHA:</span>
+            <span>{new Date().toLocaleString()}</span>
+            
+            <span className="font-bold">CLIENTE:</span>
+            <span className="uppercase">{clients.find(c => c.id === selectedClientId)?.name}</span>
+            
+            <span className="font-bold">PATENTE:</span>
+            <span className="uppercase">{camiones.find(c => c.id === selectedCamionId)?.patente}</span>
+            
+            <span className="font-bold">CONDUCTOR:</span>
+            <span className="uppercase">{camiones.find(c => c.id === selectedCamionId)?.conductor_nombre}</span>
+          </div>
+
+          <div className="border-y-2 border-dashed border-black py-4 my-2">
+            <div className="flex justify-between font-black text-lg">
+              <span>{selectedMaterial?.nombre}</span>
+              <span>{quantity} m³</span>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-end">
+            <div className="flex flex-col gap-1 text-[10px] opacity-70">
+              <span>MÉTODO: {paymentMethod?.toUpperCase()}</span>
+              <span>SISTEMA: GRAVOKA SaaS v4.2</span>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-bold">TOTAL</p>
+              <p className="text-xl font-black tracking-tighter">{formatCurrency(total)}</p>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-slate-300 text-center text-[10px]">
+            <p>GRACIAS POR SU PREFERENCIA</p>
+            <p>Documento no válido como factura</p>
+          </div>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print\:block, .print\:block * {
+            visibility: visible;
+          }
+          .print\:block {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   );
 }
