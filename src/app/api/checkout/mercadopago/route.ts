@@ -15,17 +15,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Falta empresaId' }, { status: 400 });
     }
 
+    const host = request.headers.get('host');
+    const protocol = host?.includes('localhost') ? 'http' : 'https';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+
     if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
        console.warn("Mercado Pago no configurado. Simularíamos pago exitoso aquí en DEV.");
-       // En un entorno de verdad sin token, podríamos lanzar error, pero dejémoslo loguedo
-       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/suscripcion?error=mercadopago_not_configured`, { status: 303 });
+       return NextResponse.redirect(`${baseUrl}/suscripcion?error=mercadopago_not_configured`, { status: 303 });
     }
 
     const preference = new Preference(client);
     
     // El puerto base puede ser variable en producción (ej. https://miapp.cl)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
     const result = await preference.create({
       body: {
         items: [
