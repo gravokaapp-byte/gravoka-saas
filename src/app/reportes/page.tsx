@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { processBIStats, filterByRange, GuiaData } from '@/lib/bi-engine';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  AreaChart, Area 
+  AreaChart, Area, PieChart, Pie, Cell 
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { 
@@ -21,7 +21,8 @@ import {
   XCircle,
   Truck,
   Users,
-  Package
+  Package,
+  MapPin
 } from 'lucide-react';
 
 export default function ReportesPage() {
@@ -161,7 +162,7 @@ export default function ReportesPage() {
           <StatCard title="Operaciones" value={stats.summary.operations.toString()} icon={<Truck className="text-orange-500" />} trend="Flujo constante" />
         </div>
 
-        {/* Charts Row */}
+        {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           {/* Main Sales Chart */}
           <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none">
@@ -188,39 +189,106 @@ export default function ReportesPage() {
             </div>
           </div>
 
-          {/* Side stats */}
-          <div className="flex flex-col gap-6">
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800">
-              <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                <Truck className="size-4" /> Top Camiones
-              </h3>
-              <div className="space-y-4">
-                {stats.topTrucks.map(t => (
-                  <div key={t.patente} className="flex items-center justify-between">
+          {/* Top Trucks */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800">
+            <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+              <Truck className="size-4" /> Top Flota (Vueltas)
+            </h3>
+            <div className="space-y-4">
+              {stats.topTrucks.map(t => (
+                <div key={t.patente} className="flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
                     <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{t.patente}</span>
-                    <span className="text-xs bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full font-black text-primary">{t.vueltas} Vueltas</span>
+                    <span className="text-xs font-black text-primary">{t.vueltas} Vueltas</span>
                   </div>
-                ))}
-              </div>
+                  <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary" 
+                      style={{ width: `${Math.min(100, (t.vueltas / (stats.topTrucks[0]?.vueltas || 1)) * 100)}%` }} 
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
+        </div>
 
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 flex-1">
-              <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                <Users className="size-4" /> Top Clientes
-              </h3>
-              <div className="space-y-4">
-                {stats.topClients.map(c => (
-                  <div key={c.nombre} className="flex flex-col gap-1">
-                    <div className="flex justify-between text-sm font-bold">
-                      <span className="truncate max-w-[150px]">{c.nombre}</span>
-                      <span className="text-primary">{formatCurrency(c.ganancia)}</span>
+        {/* Charts Row 2 - NEW */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+          {/* Driver Productivity */}
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-8 flex items-center gap-2">
+              <Users className="size-4" /> Rendimiento de Choferes
+            </h3>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.topDrivers} layout="vertical">
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="nombre" type="category" axisLine={false} tickLine={false} width={80} style={{ fontSize: '10px', fontWeight: 'bold' }} />
+                  <Tooltip 
+                    cursor={{ fill: 'transparent' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none' }}
+                  />
+                  <Bar dataKey="vueltas" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Destination Volume */}
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-8 flex items-center gap-2">
+              <MapPin className="size-4" /> Destinos (m³)
+            </h3>
+            <div className="h-[250px] w-full flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={stats.topDestinations}
+                    dataKey="m3"
+                    nameKey="nombre"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                  >
+                    {stats.topDestinations.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'][index % 5]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Client Profit Margins */}
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+              <FileSpreadsheet className="size-4" /> Rentabilidad por Cliente
+            </h3>
+            <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+              {stats.topClients.map(c => (
+                <div key={c.nombre} className="p-3 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-black truncate max-w-[140px]">{c.nombre}</span>
+                    <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
+                      {c.margin.toFixed(1)}% Margen
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Utilidad</span>
+                      <span className="text-xs font-black">{formatCurrency(c.ganancia)}</span>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: `${Math.min(100, (c.ganancia / stats.summary.revenue) * 100)}%` }} />
+                    <div className="flex flex-col text-right">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Volumen</span>
+                      <span className="text-xs font-black text-blue-500">{c.m3.toFixed(1)} m³</span>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

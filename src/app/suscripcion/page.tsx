@@ -1,4 +1,3 @@
-import ClientLayoutWrapper from '@/components/ClientLayoutWrapper';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { cookies } from 'next/headers';
@@ -7,146 +6,14 @@ export default async function SuscripcionPage() {
   const cookieStore = await cookies();
   const empresaId = cookieStore.get('empresa_id')?.value;
 
-  let empresaData = null;
-  if (empresaId) {
-    const empresaRef = doc(db, 'empresas', empresaId);
-    const empresaSnap = await getDoc(empresaRef);
-    if (empresaSnap.exists()) {
-      empresaData = empresaSnap.data();
-    }
-  }
-
   return (
-    <ClientLayoutWrapper>
-      <div className="pt-20 lg:pt-8 min-h-screen bg-gray-50 dark:bg-slate-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          
-          <div className="text-center mb-12">
-            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
-              Planes y Suscripción
-            </h1>
-            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-              Activa tu cuenta para acceder a todas las funcionalidades de Gravoka SaaS.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Plan Card */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col">
-              <div className="px-6 py-8 sm:p-10 sm:pb-6">
-                <div>
-                  <h3 className="inline-flex px-4 py-1 rounded-full text-sm font-semibold tracking-wide uppercase bg-[#EBF5EE] text-[#00A859]" id="tier-standard">
-                    Plan Pro
-                  </h3>
-                </div>
-                <div className="mt-4 flex items-baseline text-5xl font-extrabold text-gray-900 dark:text-white">
-                  $49.990
-                  <span className="ml-1 text-xl font-medium text-gray-500 dark:text-gray-400">/mes</span>
-                </div>
-                <p className="mt-5 text-lg text-gray-500 dark:text-gray-400">
-                  Todo lo que necesitas para operar tu planta de forma digital.
-                </p>
-              </div>
-              <div className="flex-1 flex flex-col justify-between px-6 pt-6 pb-8 sm:p-10 sm:pt-6">
-                <ul className="space-y-4">
-                  <li className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <svg className="h-6 w-6 text-[#00A859]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <p className="ml-3 text-base text-gray-700 dark:text-gray-300">
-                      Guías de Despacho ilimitadas
-                    </p>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <svg className="h-6 w-6 text-[#00A859]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <p className="ml-3 text-base text-gray-700 dark:text-gray-300">
-                      Registro de Clientes
-                    </p>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <svg className="h-6 w-6 text-[#00A859]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <p className="ml-3 text-base text-gray-700 dark:text-gray-300">
-                      Dashboard de KPIs en Tiempo Real
-                    </p>
-                  </li>
-                </ul>
-                <div className="mt-8">
-                  <form action="/api/checkout/mercadopago" method="POST">
-                    <input type="hidden" name="empresaId" value={empresaId || ''} />
-                    <button
-                      type="submit"
-                      disabled={empresaData?.estado === 'activo'}
-                      className={`w-full flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white transition-colors duration-200 ${
-                         empresaData?.estado === 'activo' ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#00A859] hover:bg-emerald-600'
-                      }`}
-                    >
-                      {empresaData?.estado === 'activo' ? 'Plan Actual Activo' : 'Suscribirse via MercadoPago'}
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-
-            {/* Current State Info */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-8 flex flex-col justify-center">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Estado de Tu Cuenta</h2>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-slate-700">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">Empresa:</span>
-                  <span className="text-gray-900 dark:text-white font-semibold">{empresaData?.nombre || 'Cargando...'}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-slate-700">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">Estado:</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    empresaData?.estado === 'activo' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                  }`}>
-                    {empresaData?.estado === 'activo' ? 'Activo' : 'Inactivo / Moroso'}
-                  </span>
-                </div>
-                {empresaData?.fecha_vencimiento && (
-                  <div className="flex justify-between items-center py-3">
-                    <span className="text-gray-500 dark:text-gray-400 font-medium">Vencimiento:</span>
-                    <span className="text-gray-900 dark:text-white font-semibold">
-                      {new Date(empresaData.fecha_vencimiento.seconds * 1000).toLocaleDateString('es-CL')}
-                    </span>
-                  </div>
-                )}
-              </div>
-              {empresaData?.estado !== 'activo' && (
-                <div className="mt-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-amber-800 dark:text-amber-400">Atención requerida</h3>
-                      <div className="mt-2 text-sm text-amber-700 dark:text-amber-300">
-                        <p>
-                          Tu cuenta está inactiva. Suscríbete para crear nuevas Guías de Despacho y acceder al Dashboard operativo.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-        </div>
+    <div className="p-20 bg-red-50 min-h-screen">
+      <h1 className="text-4xl font-bold">PAGINA DE SUSCRIPCION (DEBUG)</h1>
+      <p>ID Empresa: {empresaId || 'Sin Cookie'}</p>
+      <div className="mt-10 p-4 border-2 border-dashed border-red-500">
+        Si ves una sola barra lateral, el error estaba en los componentes internos.
+        Si ves dos, el error está en el Layout global o ruteo.
       </div>
-    </ClientLayoutWrapper>
+    </div>
   );
 }

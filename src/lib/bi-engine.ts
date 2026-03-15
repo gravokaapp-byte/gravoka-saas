@@ -31,13 +31,17 @@ export const processBIStats = (guias: GuiaData[]) => {
     .sort((a, b) => b.vueltas - a.vueltas)
     .slice(0, 5);
 
-  // 2. Top Clientes (M3 y Ganancia)
-  const clientStats: Record<string, { m3: number, ganancia: number }> = {};
+  // 2. Top Clientes (M3, Ganancia y Margen)
+  const clientStats: Record<string, { m3: number, ganancia: number, freight: number, margin: number }> = {};
   filteredGuias.forEach(g => {
     const key = g.cliente_nombre || 'Desconocido';
-    if (!clientStats[key]) clientStats[key] = { m3: 0, ganancia: 0 };
+    if (!clientStats[key]) clientStats[key] = { m3: 0, ganancia: 0, freight: 0, margin: 0 };
+    const freight = g.flete_costo || 0;
+    const ganancia = g.total_estimado - freight;
     clientStats[key].m3 += g.cantidad;
-    clientStats[key].ganancia += (g.total_estimado - (g.flete_costo || 0));
+    clientStats[key].freight += freight;
+    clientStats[key].ganancia += ganancia;
+    clientStats[key].margin = (clientStats[key].ganancia / (clientStats[key].ganancia + clientStats[key].freight)) * 100;
   });
   const topClients = Object.entries(clientStats)
     .map(([nombre, stats]) => ({ nombre, ...stats }))
@@ -52,6 +56,31 @@ export const processBIStats = (guias: GuiaData[]) => {
     productStats[key] += g.cantidad;
   });
   const topProducts = Object.entries(productStats)
+    .map(([nombre, m3]) => ({ nombre, m3 }))
+    .sort((a, b) => b.m3 - a.m3)
+    .slice(0, 5);
+
+  // 5. Productividad por Chofer
+  const driverStats: Record<string, { vueltas: number, m3: number }> = {};
+  filteredGuias.forEach(g => {
+    const key = g.conductor_nombre || 'Desconocido';
+    if (!driverStats[key]) driverStats[key] = { vueltas: 0, m3: 0 };
+    driverStats[key].vueltas += 1;
+    driverStats[key].m3 += g.cantidad;
+  });
+  const topDrivers = Object.entries(driverStats)
+    .map(([nombre, stats]) => ({ nombre, ...stats }))
+    .sort((a, b) => b.vueltas - a.vueltas)
+    .slice(0, 5);
+
+  // 6. Volumen por Destino
+  const destinationStats: Record<string, number> = {};
+  filteredGuias.forEach(g => {
+    const key = g.destino || 'Sin Destino';
+    if (!destinationStats[key]) destinationStats[key] = 0;
+    destinationStats[key] += g.cantidad;
+  });
+  const topDestinations = Object.entries(destinationStats)
     .map(([nombre, m3]) => ({ nombre, m3 }))
     .sort((a, b) => b.m3 - a.m3)
     .slice(0, 5);
@@ -83,6 +112,8 @@ export const processBIStats = (guias: GuiaData[]) => {
     topTrucks,
     topClients,
     topProducts,
+    topDrivers,
+    topDestinations,
     weeklySalesData,
     summary: {
       volume: filteredGuias.reduce((acc, g) => acc + g.cantidad, 0),
