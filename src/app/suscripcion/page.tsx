@@ -81,7 +81,7 @@ export default async function SuscripcionPage() {
                 </li>
               </ul>
               <div className="mt-8">
-                <form action="/api/checkout/mercadopago" method="POST">
+                <form action="/api/checkout/mercadopago" method="POST" className="space-y-4">
                   <input type="hidden" name="empresaId" value={empresaId || ''} />
                   <button
                     type="submit"
@@ -92,6 +92,20 @@ export default async function SuscripcionPage() {
                   >
                     {empresaData?.estado === 'activo' ? 'Plan Actual Activo' : 'Suscribirse via MercadoPago'}
                   </button>
+
+                  {!empresaData?.estado || empresaData?.estado !== 'activo' ? (
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <button 
+                        name="isTest"
+                        value="true"
+                        type="submit"
+                        className="w-full text-xs font-bold text-slate-400 hover:text-primary transition-colors flex items-center justify-center gap-2"
+                      >
+                        <span className="size-2 rounded-full bg-primary/20 animate-pulse" />
+                        Realizar suscripción de prueba ($1.000 CLP)
+                      </button>
+                    </div>
+                  ) : null}
                 </form>
               </div>
             </div>

@@ -63,10 +63,112 @@ export default function EmpresasAdminPage() {
     e.rut.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const [selectedEmpresa, setSelectedEmpresa] = useState<Empresa | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const handleEdit = (empresa: Empresa) => {
+    setSelectedEmpresa(empresa);
+    setIsEditModalOpen(true);
+  };
+
+  const saveChanges = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedEmpresa) return;
+    
+    // Convert date string if necessary
+    const formData = new FormData(e.currentTarget);
+    const updates = {
+      nombre: formData.get('nombre') as string,
+      rut: formData.get('rut') as string,
+      plan_activo: formData.get('plan') as string,
+      fecha_vencimiento: new Date(formData.get('vencimiento') as string)
+    };
+
+    try {
+      await updateDoc(doc(db, 'empresas', selectedEmpresa.id), updates);
+      setIsEditModalOpen(false);
+      loadEmpresas();
+    } catch (err) {
+      console.error("Error updating empresa:", err);
+    }
+  };
+
   if (loading || profile?.rol !== 'superadmin') return null;
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
+      {/* Edit Modal */}
+      {isEditModalOpen && selectedEmpresa && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8">
+              <h2 className="text-2xl font-black mb-2">Editar Empresa</h2>
+              <p className="text-slate-500 text-sm mb-8">Modifica los parámetros principales del cliente.</p>
+              
+              <form onSubmit={saveChanges} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400">Nombre de la Empresa</label>
+                  <input 
+                    name="nombre"
+                    defaultValue={selectedEmpresa.nombre}
+                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400">RUT</label>
+                  <input 
+                    name="rut"
+                    defaultValue={selectedEmpresa.rut}
+                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Plan SaaS</label>
+                    <select 
+                      name="plan"
+                      defaultValue={selectedEmpresa.plan_activo}
+                      className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold appearance-none"
+                    >
+                      <option value="Básico">Básico</option>
+                      <option value="Pro">Pro</option>
+                      <option value="Enterprise">Enterprise</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Vencimiento</label>
+                    <input 
+                      name="vencimiento"
+                      type="date"
+                      defaultValue={selectedEmpresa.fecha_vencimiento?.seconds ? new Date(selectedEmpresa.fecha_vencimiento.seconds * 1000).toISOString().split('T')[0] : ''}
+                      className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="flex-1 py-4 font-black uppercase text-xs tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 py-4 bg-primary text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all"
+                  >
+                    Guardar Cambios
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-black tracking-tight">Gestión de Clientes</h1>
@@ -121,7 +223,6 @@ export default function EmpresasAdminPage() {
                     </span>
                   </div>
                 </td>
-                <td className="px-6 py-5 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button 
                       onClick={() => toggleEstado(empresa.id, empresa.estado)}
@@ -130,11 +231,13 @@ export default function EmpresasAdminPage() {
                     >
                       {empresa.estado === 'activo' ? <Ban className="size-5" /> : <CheckCircle className="size-5" />}
                     </button>
-                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-primary transition-colors">
+                    <button 
+                      onClick={() => handleEdit(empresa)}
+                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-primary transition-colors"
+                    >
                       <Edit2 className="size-5" />
                     </button>
                   </div>
-                </td>
               </tr>
             ))}
           </tbody>

@@ -24,6 +24,9 @@ export async function POST(request: Request) {
        return NextResponse.redirect(`${baseUrl}/suscripcion?error=mercadopago_not_configured`, { status: 303 });
     }
 
+    const isTest = formData.get('isTest') === 'true';
+    const amount = isTest ? 1000 : 49990;
+
     const preference = new Preference(client);
     
     // El puerto base puede ser variable en producción (ej. https://miapp.cl)
@@ -31,10 +34,10 @@ export async function POST(request: Request) {
       body: {
         items: [
           {
-            id: 'gravoka-pro-mensual',
-            title: 'Gravoka SaaS - Plan Pro (Mensual)',
+            id: isTest ? 'gravoka-test-payment' : 'gravoka-pro-mensual',
+            title: isTest ? 'Gravoka SaaS - Pago de Prueba' : 'Gravoka SaaS - Plan Pro (Mensual)',
             quantity: 1,
-            unit_price: 49990,
+            unit_price: amount,
             currency_id: 'CLP',
           }
         ],
