@@ -8,16 +8,17 @@ export const dynamic = 'force-dynamic';
 const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || '' });
 
 export async function POST(request: Request) {
+  let empresaId = 'desconocido';
   try {
     const formData = await request.formData();
-    const empresaId = formData.get('empresaId')?.toString();
+    empresaId = formData.get('empresaId')?.toString() || 'sin_id';
     const isTest = formData.get('isTest') === 'true';
     const amount = 1000; // Temporalmente 1.000 para pruebas reales
 
-    await logToDb('gateway_init', `Iniciando proceso para ${empresaId}`, { isTest, amount });
-
-    if (!empresaId) {
-      return NextResponse.json({ error: 'Falta identificador de empresa' }, { status: 400 });
+    const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    if (!token) {
+       console.error("CRITICAL: MERCADOPAGO_ACCESS_TOKEN is missing in production environment");
+       return NextResponse.json({ error: 'Configuración incompleta: Falta Token de Mercado Pago en Vercel.' }, { status: 503 });
     }
 
     const host = request.headers.get('host');
