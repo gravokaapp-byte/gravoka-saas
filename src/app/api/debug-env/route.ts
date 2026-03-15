@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase/admin';
+import { adminDb, adminError } from '@/lib/firebase/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +16,7 @@ export async function GET() {
     PRIVATE_KEY_HAS_NEWLINES: privateKey?.includes('\n') || false,
     PRIVATE_KEY_HAS_ESCAPED_N: privateKey?.includes('\\n') || false,
     FIREBASE_ADMIN_INITIALIZED: !!adminDb,
+    FIREBASE_ADMIN_ERROR: adminError,
     NODE_ENV: process.env.NODE_ENV
   });
 }

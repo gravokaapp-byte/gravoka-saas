@@ -7,9 +7,11 @@ const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIR
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
+let adminError = null;
+
 if (!admin.apps.length) {
   if (!projectId || !clientEmail || !privateKey) {
-    console.warn('Firebase Admin credentials missing. Skipping initialization. This is normal during build if variables are not yet in Vercel.');
+    adminError = 'Firebase Admin credentials missing. projectId: ' + (projectId ? 'OK' : 'MISSING') + ', email: ' + (clientEmail ? 'OK' : 'MISSING') + ', key: ' + (privateKey ? 'OK' : 'MISSING');
   } else {
     try {
       admin.initializeApp({
@@ -20,8 +22,9 @@ if (!admin.apps.length) {
         }),
       });
       console.log('Firebase Admin initialized successfully.');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Firebase Admin initialization error:', error);
+      adminError = error.message || 'Error desconocido al inicializar';
     }
   }
 }
@@ -30,4 +33,4 @@ if (!admin.apps.length) {
 const adminAuth = (admin.apps.length > 0 ? admin.auth() : null) as admin.auth.Auth;
 const adminDb = (admin.apps.length > 0 ? admin.firestore() : null) as admin.firestore.Firestore;
 
-export { adminAuth, adminDb, admin };
+export { adminAuth, adminDb, admin, adminError };
