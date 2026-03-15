@@ -1,6 +1,7 @@
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { cookies } from 'next/headers';
+import SubscriptionForm from '@/components/SubscriptionForm';
 
 export default async function SuscripcionPage({
   searchParams,
@@ -104,32 +105,7 @@ export default async function SuscripcionPage({
                 </li>
               </ul>
               <div className="mt-8">
-                <form action="/api/checkout/mercadopago" method="POST" className="space-y-4">
-                  <input type="hidden" name="empresaId" value={empresaId || ''} />
-                  <button
-                    type="submit"
-                    disabled={empresaData?.estado === 'activo'}
-                    className={`w-full flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white transition-colors duration-200 ${
-                       empresaData?.estado === 'activo' ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#00A859] hover:bg-emerald-600'
-                    }`}
-                  >
-                    {empresaData?.estado === 'activo' ? 'Plan Actual Activo' : 'Suscribirse via MercadoPago'}
-                  </button>
-
-                  {!empresaData?.estado || empresaData?.estado !== 'activo' ? (
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                      <button 
-                        name="isTest"
-                        value="true"
-                        type="submit"
-                        className="w-full text-xs font-bold text-slate-400 hover:text-primary transition-colors flex items-center justify-center gap-2"
-                      >
-                        <span className="size-2 rounded-full bg-primary/20 animate-pulse" />
-                        Realizar suscripción de prueba ($1.000 CLP)
-                      </button>
-                    </div>
-                  ) : null}
-                </form>
+                <SubscriptionForm empresaId={empresaId || ''} />
               </div>
             </div>
           </div>
