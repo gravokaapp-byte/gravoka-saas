@@ -16,8 +16,11 @@ export default function SubscriptionForm({ empresaId }: { empresaId: string }) {
       formData.append('empresaId', empresaId);
       if (isTest) formData.append('isTest', 'true');
 
-      const response = await fetch('/api/checkout/mercadopago', {
+      const response = await fetch('/api/checkout/proceso', {
         method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
         body: formData,
       });
 

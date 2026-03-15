@@ -4,7 +4,7 @@ import { logToDb } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-// Mercado Pago setup: Uses Environment Variable
+// Gateway setup: Uses Environment Variable
 const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || '' });
 
 export async function POST(request: Request) {
@@ -14,36 +14,30 @@ export async function POST(request: Request) {
     const isTest = formData.get('isTest') === 'true';
     const amount = isTest ? 1000 : 49990;
 
-    await logToDb('checkout_init', `Iniciando checkout para ${empresaId}`, { isTest, amount });
+    await logToDb('gateway_init', `Iniciando proceso para ${empresaId}`, { isTest, amount });
 
     if (!empresaId) {
-      return NextResponse.json({ error: 'Falta empresaId' }, { status: 400 });
+      return NextResponse.json({ error: 'Falta identificador de empresa' }, { status: 400 });
     }
 
     const host = request.headers.get('host');
     const protocol = host?.includes('localhost') ? 'http' : 'https';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
-    // Si no hay token de Mercado Pago configurado
+    // Si no hay token configurado
     if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
-       if (isTest) {
-         console.log("Simulando activación para prueba...");
-         return NextResponse.redirect(`${baseUrl}/suscripcion?status=success&mock=true`, { status: 303 });
-       }
-       return NextResponse.redirect(`${baseUrl}/suscripcion?error=mercadopago_not_configured`, { status: 303 });
+       await logToDb('gateway_error', 'Token MERCADOPAGO_ACCESS_TOKEN no encontrado en variables de entorno');
+       return NextResponse.json({ error: 'El sistema de pagos no está configurado. Contacta a soporte.' }, { status: 503 });
     }
 
     const preference = new Preference(client);
     
-    console.log(`Creando preferencia para empresa: ${empresaId}, monto: ${amount}, isTest: ${isTest}`);
-
-    // El puerto base puede ser variable en producción
     const result = await preference.create({
       body: {
         items: [
           {
-            id: isTest ? 'gravoka-test-payment' : 'gravoka-pro-mensual',
-            title: isTest ? 'Gravoka SaaS - Pago de Prueba' : 'Gravoka SaaS - Plan Pro (Mensual)',
+            id: isTest ? 'gravoka-test' : 'gravoka-pro',
+            title: isTest ? 'Gravoka SaaS - Pago de Prueba' : 'Gravoka SaaS - Plan Pro',
             quantity: 1,
             unit_price: amount,
             currency_id: 'CLP',
@@ -55,16 +49,14 @@ export async function POST(request: Request) {
           pending: `${baseUrl}/suscripcion?status=pending`
         },
         auto_return: 'approved',
-        binary_mode: true, // Forzar aprobación rápida/rechazo directo
+        binary_mode: true,
         metadata: {
-           empresa_id: empresaId.toString(),
-           plan: 'pro'
+            empresa_id: empresaId,
+            plan: 'pro'
         },
         notification_url: `${baseUrl}/api/webhooks/mercadopago`
       }
     });
-
-    console.log('Preferencia creada exitosamente:', result.id);
 
     const isAjax = request.headers.get('accept')?.includes('application/json');
 
@@ -72,15 +64,15 @@ export async function POST(request: Request) {
        if (isAjax) {
          return NextResponse.json({ url: result.init_point });
        }
-       return NextResponse.redirect(result.init_point, { status: 303 });
+       return NextResponse.redirect(new URL(result.init_point), { status: 303 });
     } else {
-       if (isAjax) return NextResponse.json({ error: 'No se generó link de pago' }, { status: 500 });
-       throw new Error("No se pudo generar el init_point de MercadoPago");
+       if (isAjax) return NextResponse.json({ error: 'No se generó el enlace de pago correctamente' }, { status: 500 });
+       throw new Error("No se pudo generar el init_point");
     }
 
   } catch (error: any) {
-    console.error('Error creando preferencia MercadoPago:', error);
-    await logToDb('checkout_error', error.message || 'Error desconocido', { error });
-    return NextResponse.json({ error: 'Error interno conectando con pasarela' }, { status: 500 });
+    console.error('Error en gateway:', error);
+    await logToDb('gateway_error', error.message || 'Error desconocido', { error });
+    return NextResponse.json({ error: 'Error al conectar con el servidor de pagos' }, { status: 500 });
   }
 }
