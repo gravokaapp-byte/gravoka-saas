@@ -26,6 +26,11 @@ export async function POST(request: Request) {
           const empresaId = paymentInfo.metadata?.empresa_id;
           
           if (empresaId) {
+             if (!adminDb) {
+                await logToDb('webhook_critical', 'No hay conexión a adminDb en webhook', { empresaId, paymentId });
+                return NextResponse.json({ error: 'Database connection missing' }, { status: 500 });
+             }
+
              const nextMonth = new Date();
              nextMonth.setMonth(nextMonth.getMonth() + 1);
 
