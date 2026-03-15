@@ -66,9 +66,15 @@ export async function POST(request: Request) {
 
     console.log('Preferencia creada exitosamente:', result.id);
 
+    const isAjax = request.headers.get('accept')?.includes('application/json');
+
     if (result.init_point) {
+       if (isAjax) {
+         return NextResponse.json({ url: result.init_point });
+       }
        return NextResponse.redirect(result.init_point, { status: 303 });
     } else {
+       if (isAjax) return NextResponse.json({ error: 'No se generó link de pago' }, { status: 500 });
        throw new Error("No se pudo generar el init_point de MercadoPago");
     }
 
