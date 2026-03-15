@@ -32,6 +32,8 @@ export async function POST(request: Request) {
 
     const preference = new Preference(client);
     
+    console.log(`Creando preferencia para empresa: ${empresaId}, monto: ${amount}, isTest: ${isTest}`);
+
     // El puerto base puede ser variable en producción
     const result = await preference.create({
       body: {
@@ -50,6 +52,7 @@ export async function POST(request: Request) {
           pending: `${baseUrl}/suscripcion?status=pending`
         },
         auto_return: 'approved',
+        binary_mode: true, // Forzar aprobación rápida/rechazo directo
         metadata: {
            empresa_id: empresaId.toString(),
            plan: 'pro'
@@ -57,6 +60,8 @@ export async function POST(request: Request) {
         notification_url: `${baseUrl}/api/webhooks/mercadopago`
       }
     });
+
+    console.log('Preferencia creada exitosamente:', result.id);
 
     if (result.init_point) {
        return NextResponse.redirect(result.init_point, { status: 303 });
