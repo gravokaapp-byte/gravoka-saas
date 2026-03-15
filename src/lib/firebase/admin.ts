@@ -14,11 +14,18 @@ if (!admin.apps.length) {
     adminError = 'Firebase Admin credentials missing. projectId: ' + (projectId ? 'OK' : 'MISSING') + ', email: ' + (clientEmail ? 'OK' : 'MISSING') + ', key: ' + (privateKey ? 'OK' : 'MISSING');
   } else {
     try {
+      // Limpiar la llave de posibles comillas, escapes de \n o caracteres \r tras pegar en Vercel
+      const formattedKey = privateKey
+        .trim()
+        .replace(/^["']|["']$/g, '') 
+        .replace(/\\n/g, '\n')
+        .replace(/\r/g, '');
+
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId: projectId,
           clientEmail: clientEmail,
-          privateKey: privateKey.replace(/\\n/g, '\n'),
+          privateKey: formattedKey,
         }),
       });
       console.log('Firebase Admin initialized successfully.');
