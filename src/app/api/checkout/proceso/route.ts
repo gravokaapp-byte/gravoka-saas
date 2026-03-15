@@ -72,7 +72,16 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('Error en gateway:', error);
-    await logToDb('gateway_error', error.message || 'Error desconocido', { error });
-    return NextResponse.json({ error: 'Error al conectar con el servidor de pagos' }, { status: 500 });
+    
+    // Intentar loggear el error (si el logger está vivo)
+    await logToDb('gateway_error', error.message || 'Error desconocido', { 
+      stack: error.stack,
+      empresaId: empresaId
+    });
+
+    return NextResponse.json({ 
+      error: `Error técnico en el servidor: ${error.message || 'Error desconocido'}`,
+      details: error.response?.data || null
+    }, { status: 500 });
   }
 }
