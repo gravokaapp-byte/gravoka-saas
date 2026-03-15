@@ -60,10 +60,19 @@ export default function SuperAdminPage() {
   const loadData = async () => {
     setIsLoadingData(true);
     try {
-      const q = query(collection(db, 'empresas'), orderBy('creado_en', 'desc'));
+      // Use simpler query to avoid skipping documents missing 'creado_en'
+      const q = query(collection(db, 'empresas'));
       const querySnapshot = await getDocs(q);
       const docs = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Empresa[];
-      setEmpresas(docs);
+      
+      // Sort manually in memory to ensure stability
+      const sortedDocs = [...docs].sort((a, b) => {
+        const dateA = a.creado_en?.seconds || 0;
+        const dateB = b.creado_en?.seconds || 0;
+        return dateB - dateA;
+      });
+      
+      setEmpresas(sortedDocs);
       
       const stats = await getSaaSGlobalStats();
       setSaasStats(stats);
@@ -140,11 +149,14 @@ export default function SuperAdminPage() {
           color="bg-primary"
         />
         <MetricCard 
-          title="Días p/ Cierre" 
-          value={(30 - new Date().getDate()).toString()} 
-          icon="calendar_month" 
-          secondary="Ciclo de facturación"
-          color="bg-slate-600"
+          title="Empresas en Riesgo" 
+          value={empresas.filter(e => {
+            const days = calculateDaysRemaining(e.fecha_vencimiento);
+            return days !== null && days < 7;
+          }).length.toString()} 
+          icon="warning" 
+          secondary="Por vencer esta semana"
+          color="bg-amber-500"
         />
       </div>
 
@@ -169,13 +181,14 @@ export default function SuperAdminPage() {
                     <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Plan</th>
                     <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Estado</th>
                     <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Vencimiento</th>
+                    <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {isLoadingData ? (
-                    <tr><td colSpan={4} className="px-8 py-10 text-center text-slate-500 italic">Cargando datos maestros...</td></tr>
+                    <tr><td colSpan={5} className="px-8 py-10 text-center text-slate-500 italic">Cargando datos maestros...</td></tr>
                   ) : empresas.map((empresa) => (
-                    <tr key={empresa.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all">
+                    <tr key={empresa.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all">
                       <td className="px-8 py-6">
                         <div className="flex flex-col">
                           <span className="text-sm font-black text-slate-900 dark:text-white">{empresa.nombre}</span>
@@ -219,6 +232,16 @@ export default function SuperAdminPage() {
                           <span className="text-xs text-slate-400">Sin fecha</span>
                         )}
                       </td>
+                      <td className="px-8 py-6 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-primary transition-colors">
+                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                          </button>
+                          <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-500 transition-colors">
+                            <span className="material-symbols-outlined text-[20px]">block</span>
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -229,8 +252,20 @@ export default function SuperAdminPage() {
 
         {/* Right: Insights & Charts */}
         <div className="space-y-8">
-          {/* Plan Distribution */}
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+          
+          {/* Audit Log / Actividad Reciente */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8">
+            <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-6">Registro de Auditoría</h3>
+            <div className="space-y-6">
+              <AuditItem icon="person_add" text="Nueva empresa: Planeta X" time="Hace 2 horas" />
+              <AuditItem icon="credit_score" text="Pago recibido: Empresa Demo" time="Hace 5 horas" />
+              <AuditItem icon="settings" text="Cambio de plan: Transportes J" time="Ayer" />
+              <AuditItem icon="shield" text="Login de seguridad realizado" time="Hace 1 día" />
+            </div>
+          </div>
+
+          {/* Distribution Chart */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8">
             <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-8">Distribución por Plan</h3>
             <div className="h-[200px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -281,6 +316,20 @@ export default function SuperAdminPage() {
           </div>
         </div>
 
+      </div>
+    </div>
+  );
+}
+
+function AuditItem({ icon, text, time }: { icon: string, text: string, time: string }) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className="size-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+        <span className="material-symbols-outlined text-[20px]">{icon}</span>
+      </div>
+      <div>
+        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{text}</p>
+        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{time}</p>
       </div>
     </div>
   );
