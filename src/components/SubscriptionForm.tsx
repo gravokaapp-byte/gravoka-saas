@@ -73,18 +73,6 @@ export default function SubscriptionForm({ empresaId }: { empresaId: string }) {
           </div>
         ) : 'Suscribirse via MercadoPago'}
       </button>
-
-      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-        <button
-          type="button"
-          onClick={() => handleSubscribe(true)}
-          disabled={loading}
-          className="w-full text-xs font-bold text-slate-400 hover:text-primary transition-colors flex items-center justify-center gap-2"
-        >
-          <span className={`size-2 rounded-full ${loading ? 'bg-gray-300' : 'bg-primary/20 animate-pulse'}`} />
-          Realizar suscripción de prueba ($1.000 CLP)
-        </button>
-      </div>
     </div>
   );
 }

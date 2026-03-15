@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const empresaId = formData.get('empresaId')?.toString();
     const isTest = formData.get('isTest') === 'true';
-    const amount = isTest ? 1000 : 49990;
+    const amount = 1000; // Temporalmente 1.000 para pruebas reales
 
     await logToDb('gateway_init', `Iniciando proceso para ${empresaId}`, { isTest, amount });
 
