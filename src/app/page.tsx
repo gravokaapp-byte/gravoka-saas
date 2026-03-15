@@ -47,6 +47,7 @@ export default function Dashboard() {
   useEffect(() => {
     // Fetch Empresa Data for subscription info
     const fetchEmpresa = async () => {
+      if (!profile) return;
       const eDoc = await getDoc(doc(db, 'empresas', profile.empresa_id!));
       if (eDoc.exists()) setEmpresaData(eDoc.data());
     };

@@ -13,7 +13,6 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 
-const admin = require('firebase-admin');
 
 function calculateDaysRemaining(fechaVencimiento: any) {
   if (!fechaVencimiento) return null;
