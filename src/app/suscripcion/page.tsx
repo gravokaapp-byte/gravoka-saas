@@ -2,9 +2,15 @@ import { db } from '@/lib/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { cookies } from 'next/headers';
 
-export default async function SuscripcionPage() {
+export default async function SuscripcionPage({
+  searchParams,
+}: {
+  searchParams: { status?: string; error?: string };
+}) {
   const cookieStore = await cookies();
   const empresaId = cookieStore.get('empresa_id')?.value;
+  const status = searchParams.status;
+  const error = searchParams.error;
 
   let empresaData = null;
   if (empresaId) {
@@ -29,6 +35,23 @@ export default async function SuscripcionPage() {
               : 'Activa tu cuenta para acceder a todas las funcionalidades de Gravoka SaaS.'}
           </p>
         </div>
+
+        {error === 'mercadopago_not_configured' && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-bold flex gap-3 items-center">
+            <div className="size-2 bg-red-500 rounded-full animate-ping" />
+            Atención: Mercado Pago no está configurado en el servidor (Falta Token).
+          </div>
+        )}
+
+        {status === 'success' && (
+          <div className="mb-8 p-6 bg-emerald-50 border border-emerald-100 rounded-3xl text-emerald-700 text-sm font-bold flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-emerald-500">check_circle</span>
+              <span>¡Pago procesado con éxito!</span>
+            </div>
+            <p className="font-medium text-emerald-600/80">Tu cuenta se activará en unos segundos. Por favor, refresca la página.</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Plan Card */}

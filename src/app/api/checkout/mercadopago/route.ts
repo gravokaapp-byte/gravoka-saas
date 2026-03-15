@@ -10,6 +10,8 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const empresaId = formData.get('empresaId');
+    const isTest = formData.get('isTest') === 'true';
+    const amount = isTest ? 1000 : 49990;
 
     if (!empresaId) {
       return NextResponse.json({ error: 'Falta empresaId' }, { status: 400 });
@@ -19,17 +21,18 @@ export async function POST(request: Request) {
     const protocol = host?.includes('localhost') ? 'http' : 'https';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
 
+    // Si no hay token de Mercado Pago configurado
     if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
-       console.warn("Mercado Pago no configurado. Simularíamos pago exitoso aquí en DEV.");
+       if (isTest) {
+         console.log("Simulando activación para prueba...");
+         return NextResponse.redirect(`${baseUrl}/suscripcion?status=success&mock=true`, { status: 303 });
+       }
        return NextResponse.redirect(`${baseUrl}/suscripcion?error=mercadopago_not_configured`, { status: 303 });
     }
 
-    const isTest = formData.get('isTest') === 'true';
-    const amount = isTest ? 1000 : 49990;
-
     const preference = new Preference(client);
     
-    // El puerto base puede ser variable en producción (ej. https://miapp.cl)
+    // El puerto base puede ser variable en producción
     const result = await preference.create({
       body: {
         items: [
@@ -47,18 +50,15 @@ export async function POST(request: Request) {
           pending: `${baseUrl}/suscripcion?status=pending`
         },
         auto_return: 'approved',
-        // metadata es CRÍTICO: aquí guardamos qué empresa está pagando para activarla luego en el Webhook
         metadata: {
            empresa_id: empresaId.toString(),
            plan: 'pro'
         },
-        // Donde enviaremos la confirmación en segundo plano (Server to Server)
         notification_url: `${baseUrl}/api/webhooks/mercadopago`
       }
     });
 
     if (result.init_point) {
-       // Redirigir al usuario a la pasarela de pagos de Mercado Pago
        return NextResponse.redirect(result.init_point, { status: 303 });
     } else {
        throw new Error("No se pudo generar el init_point de MercadoPago");
