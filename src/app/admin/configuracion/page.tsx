@@ -7,7 +7,7 @@ import {
   Settings2, 
   CreditCard, 
   ShieldCheck, 
-  CloudZap, 
+  Zap, 
   Save,
   CheckCircle2
 } from 'lucide-react';
