@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { logToDb } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,9 +10,11 @@ const client = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCE
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const empresaId = formData.get('empresaId');
+    const empresaId = formData.get('empresaId')?.toString();
     const isTest = formData.get('isTest') === 'true';
     const amount = isTest ? 1000 : 49990;
+
+    await logToDb('checkout_init', `Iniciando checkout para ${empresaId}`, { isTest, amount });
 
     if (!empresaId) {
       return NextResponse.json({ error: 'Falta empresaId' }, { status: 400 });
@@ -69,8 +72,9 @@ export async function POST(request: Request) {
        throw new Error("No se pudo generar el init_point de MercadoPago");
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creando preferencia MercadoPago:', error);
+    await logToDb('checkout_error', error.message || 'Error desconocido', { error });
     return NextResponse.json({ error: 'Error interno conectando con pasarela' }, { status: 500 });
   }
 }
