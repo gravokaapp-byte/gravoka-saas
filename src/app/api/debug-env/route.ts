@@ -9,7 +9,8 @@ export async function GET() {
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 
   return NextResponse.json({
-    DEBUG_VERSION: "1.2",
+    DEBUG_VERSION: "1.3",
+    DEPLOYMENT_TIME: "2026-03-15 16:30",
     MERCADOPAGO_TOKEN: process.env.MERCADOPAGO_ACCESS_TOKEN ? `Presente (${process.env.MERCADOPAGO_ACCESS_TOKEN.length} chars)` : 'Faltante ❌',
     FIREBASE_PROJECT_ID: projectId ? `${projectId} (${projectId.length} chars)` : 'Faltante ❌',
     FIREBASE_CLIENT_EMAIL: clientEmail ? `${clientEmail.substring(0, 5)}... (${clientEmail.length} chars)` : 'Faltante ❌',

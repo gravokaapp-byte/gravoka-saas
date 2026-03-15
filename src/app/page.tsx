@@ -124,13 +124,15 @@ export default function Dashboard() {
     return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  if (isLoading) {
+  if (isLoading || (profile && profile.rol === 'superadmin')) {
     return (
-      <div className="w-full flex justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      <div className="w-full flex justify-center py-20 min-h-screen items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
+
+  if (!profile) return null;
 
   return (
     <div className="space-y-8">

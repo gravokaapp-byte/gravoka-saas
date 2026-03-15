@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin';
 
 // Initialize the Firebase Admin SDK
 // This should only be used in Server Actions or API routes
+// DEPLOY_MARK: 2026-03-15_16:30
 
 const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
