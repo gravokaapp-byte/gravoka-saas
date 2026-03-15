@@ -11,6 +11,7 @@ export default function Sidebar() {
   const superadminLinks = [
     { href: '/admin', icon: 'admin_panel_settings', label: 'SaaS Dashboard' },
     { href: '/admin/empresas', icon: 'corporate_fare', label: 'Empresas' },
+    { href: '/admin/usuarios', icon: 'manage_accounts', label: 'Gestión Usuarios' },
     { href: '/admin/configuracion', icon: 'settings_suggest', label: 'Configuración SaaS' },
   ];
 
