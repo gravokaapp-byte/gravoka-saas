@@ -1,20 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
-export default function SubscriptionForm({ empresaId }: { empresaId: string }) {
+export default function SubscriptionForm({ empresaId: initialEmpresaId }: { empresaId?: string }) {
+  const { profile, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [empresaId, setEmpresaId] = useState(initialEmpresaId || '');
 
-  const handleSubscribe = async (isTest: boolean) => {
+  useEffect(() => {
+    if (!empresaId && profile?.empresa_id) {
+      setEmpresaId(profile.empresa_id);
+    }
+  }, [profile, empresaId]);
+
+  const handleSubscribe = async () => {
+    if (!empresaId) {
+       setError("No se detectó tu sesión. Por favor, recarga la página.");
+       return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const formData = new FormData();
       formData.append('empresaId', empresaId);
-      if (isTest) formData.append('isTest', 'true');
 
       const response = await fetch('/api/checkout/proceso', {
         method: 'POST',
@@ -42,10 +54,10 @@ export default function SubscriptionForm({ empresaId }: { empresaId: string }) {
     }
   };
 
-  if (!empresaId) {
+  if (authLoading) {
     return (
-      <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium">
-        Error: No se detectó tu identificador de empresa. Por favor, cierra sesión e inicia de nuevo.
+      <div className="w-full flex justify-center py-3">
+        <div className="size-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     );
   }
@@ -58,12 +70,18 @@ export default function SubscriptionForm({ empresaId }: { empresaId: string }) {
         </div>
       )}
       
+      {!empresaId && !error && (
+         <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-amber-700 text-sm">
+           Detectando cuenta... si esto tarda, por favor reinicia sesión.
+         </div>
+      )}
+
       <button
         type="button"
-        onClick={() => handleSubscribe(false)}
-        disabled={loading}
+        onClick={handleSubscribe}
+        disabled={loading || !empresaId}
         className={`w-full flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white transition-colors duration-200 ${
-          loading ? 'bg-emerald-400 cursor-wait' : 'bg-[#00A859] hover:bg-emerald-600'
+          (loading || !empresaId) ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#00A859] hover:bg-emerald-600'
         }`}
       >
         {loading ? (
