@@ -13,6 +13,17 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 
+const admin = require('firebase-admin');
+
+function calculateDaysRemaining(fechaVencimiento: any) {
+  if (!fechaVencimiento) return null;
+  const expiry = new Date(fechaVencimiento.seconds * 1000);
+  const now = new Date();
+  const diffTime = expiry.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+}
+
 interface Empresa {
   id: string;
   nombre: string;
@@ -187,10 +198,26 @@ export default function SuperAdminPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-sm font-medium text-slate-500">
-                        {empresa.fecha_vencimiento 
-                          ? new Date(empresa.fecha_vencimiento.seconds * 1000).toLocaleDateString('es-CL') 
-                          : 'Sin fecha'}
+                      <td className="px-8 py-6">
+                        {empresa.fecha_vencimiento ? (
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                              {new Date(empresa.fecha_vencimiento.seconds * 1000).toLocaleDateString('es-CL')}
+                            </span>
+                            {(() => {
+                              const days = calculateDaysRemaining(empresa.fecha_vencimiento);
+                              if (days === null) return null;
+                              const color = days < 3 ? 'text-red-500' : days < 10 ? 'text-amber-500' : 'text-emerald-500';
+                              return (
+                                <span className={`text-[10px] font-black uppercase tracking-tighter ${color}`}>
+                                  {days < 0 ? 'Vencido' : `${days} días restantes`}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">Sin fecha</span>
+                        )}
                       </td>
                     </tr>
                   ))}

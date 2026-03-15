@@ -5,7 +5,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { 
+  CreditCard, 
+  Calendar,
+  AlertTriangle,
+  Zap
+} from 'lucide-react';
 
 interface Guia {
   id: string;
@@ -35,13 +41,19 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ ventas: 0, volumen: 0, guias: 0 });
   const [recentGuias, setRecentGuias] = useState<Guia[]>([]);
   const [clientNames, setClientNames] = useState<ClientMap>({});
+  const [empresaData, setEmpresaData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!profile?.empresa_id) return;
+    // Fetch Empresa Data for subscription info
+    const fetchEmpresa = async () => {
+      const eDoc = await getDoc(doc(db, 'empresas', profile.empresa_id!));
+      if (eDoc.exists()) setEmpresaData(eDoc.data());
+    };
+    fetchEmpresa();
 
     // Listen to Clients to map IDs to Names
-    const clientsQ = query(collection(db, 'clientes'), where('empresa_id', '==', profile.empresa_id));
+    const clientsQ = query(collection(db, 'clientes'), where('empresa_id', '==', profile?.empresa_id || ''));
     const unsubClients = onSnapshot(clientsQ, (snapshot) => {
       const cmap: ClientMap = {};
       snapshot.forEach(doc => {
@@ -53,7 +65,7 @@ export default function Dashboard() {
     // Listen to Guias
     const guiasQ = query(
       collection(db, 'guias'), 
-      where('empresa_id', '==', profile.empresa_id),
+      where('empresa_id', '==', profile?.empresa_id || ''),
       orderBy('creado_en', 'desc')
     );
     
@@ -104,6 +116,13 @@ export default function Dashboard() {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
   };
 
+  const daysRemaining = () => {
+    if (!empresaData?.fecha_vencimiento) return null;
+    const expiry = new Date(empresaData.fecha_vencimiento.seconds * 1000);
+    const now = new Date();
+    return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
   if (isLoading) {
     return (
       <div className="w-full flex justify-center py-20">
@@ -114,6 +133,42 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Subscription Banner */}
+      {empresaData && (
+        <div className={`p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 border ${
+          (daysRemaining() || 0) < 7 
+            ? 'bg-amber-50 border-amber-200 text-amber-800' 
+            : 'bg-primary/5 border-primary/10 text-primary-dark font-medium'
+        }`}>
+          <div className="flex items-center gap-4">
+            <div className={`size-12 rounded-xl flex items-center justify-center ${
+              (daysRemaining() || 0) < 7 ? 'bg-amber-100' : 'bg-primary/10'
+            }`}>
+              {empresaData.plan_activo === 'Enterprise' ? <Zap className="size-6 text-primary" /> : <CreditCard className="size-6" />}
+            </div>
+            <div>
+              <p className="text-sm font-black flex items-center gap-2">
+                Plan {empresaData.plan_activo || 'Pro'}
+                <span className="text-[10px] uppercase bg-white/50 px-2 py-0.5 rounded-full border border-current/20">Activo</span>
+              </p>
+              <p className="text-xs opacity-70">
+                Tu suscripción vence el {new Date(empresaData.fecha_vencimiento.seconds * 1000).toLocaleDateString('es-CL')}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <p className="text-[10px] font-black uppercase opacity-60">Tiempo restante</p>
+              <p className="text-lg font-black tracking-tighter">
+                {daysRemaining() === null ? 'Pendiente' : `${daysRemaining()} días`}
+              </p>
+            </div>
+            <button className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+              Renovar o Cambiar Plan
+            </button>
+          </div>
+        </div>
+      )}
       {/* KPI Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
