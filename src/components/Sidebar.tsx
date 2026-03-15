@@ -8,7 +8,13 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { profile, logout } = useAuth();
 
-  const links = [
+  const superadminLinks = [
+    { href: '/admin', icon: 'admin_panel_settings', label: 'SaaS Dashboard' },
+    { href: '/admin?tab=empresas', icon: 'corporate_fare', label: 'Empresas' },
+    { href: '/admin/configuracion', icon: 'settings_suggest', label: 'Configuración SaaS' },
+  ];
+
+  const clientLinks = [
     { href: '/', icon: 'dashboard', label: 'Dashboard' },
     { href: '/clientes', icon: 'group', label: 'Clientes' },
     { href: '/materiales', icon: 'inventory_2', label: 'Materiales' },
@@ -17,6 +23,8 @@ export default function Sidebar() {
     { href: '/reportes', icon: 'bar_chart', label: 'Reportes' },
     { href: '/configuracion', icon: 'settings', label: 'Configuración' },
   ];
+
+  const links = profile?.rol === 'superadmin' ? superadminLinks : clientLinks;
 
   return (
     <aside className="w-64 bg-slate-custom-900 dark:bg-black text-white flex flex-col h-full border-r border-slate-custom-800">

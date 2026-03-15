@@ -7,12 +7,20 @@ import { createTenantAction } from '@/app/actions/tenantActions';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 
+import { getSaaSGlobalStats, SaaSStats } from '@/lib/saas-stats';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell
+} from 'recharts';
+
 interface Empresa {
   id: string;
   nombre: string;
   rut: string;
   plan_activo: string;
-  creado_en: string;
+  creado_en: any;
+  estado: string;
+  fecha_vencimiento?: any;
 }
 
 export default function SuperAdminPage() {
@@ -20,9 +28,9 @@ export default function SuperAdminPage() {
   const router = useRouter();
   
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [saasStats, setSaasStats] = useState<SaaSStats | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   
-  // Form state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -31,162 +39,240 @@ export default function SuperAdminPage() {
       if (!user) {
         router.push('/login');
       } else if (profile?.rol !== 'superadmin') {
-        router.push('/'); // Redirect normal users to their dashboard
+        router.push('/');
       } else {
-        fetchEmpresas();
+        loadData();
       }
     }
   }, [user, profile, loading, router]);
 
-  const fetchEmpresas = async () => {
+  const loadData = async () => {
+    setIsLoadingData(true);
     try {
-      setIsLoadingData(true);
       const q = query(collection(db, 'empresas'), orderBy('creado_en', 'desc'));
       const querySnapshot = await getDocs(q);
       const docs = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Empresa[];
       setEmpresas(docs);
+      
+      const stats = await getSaaSGlobalStats();
+      setSaasStats(stats);
     } catch (error) {
-      console.error("Error fetching empresas:", error);
+      console.error("Error loading admin data:", error);
     } finally {
       setIsLoadingData(false);
     }
   };
 
-  const handleCreateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setFeedback(null);
-    setIsSubmitting(true);
-    
-    try {
-      const formData = new FormData(e.currentTarget);
-      const token = await user?.getIdToken(true);
-      
-      if (!token) throw new Error("No estás autenticado.");
+  const formatCurrency = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(n);
 
-      const result = await createTenantAction(formData, token);
-      
-      if (result.success) {
-        setFeedback({ type: 'success', text: result.message! });
-        (e.target as HTMLFormElement).reset();
-        fetchEmpresas(); // Refresh list
-      } else {
-        setFeedback({ type: 'error', text: result.error! });
-      }
-    } catch (err: any) {
-      setFeedback({ type: 'error', text: err.message });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (loading || (!user && !loading) || profile?.rol !== 'superadmin') {
-    return <div className="p-8">Cargando panel de administración...</div>;
+  if (loading || profile?.rol !== 'superadmin') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
+  const pieData = saasStats ? [
+    { name: 'Básico', value: saasStats.planes.Básico, color: '#94A3B8' },
+    { name: 'Pro', value: saasStats.planes.Pro, color: '#00A859' },
+    { name: 'Enterprise', value: saasStats.planes.Enterprise, color: '#1E293B' },
+  ].filter(d => d.value > 0) : [];
+
   return (
-    <div className="w-full max-w-[1400px] mx-auto px-4 md:px-10 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-          <span className="material-symbols-outlined text-primary text-4xl">admin_panel_settings</span>
-          SuperAdministrador de Gravoka
-        </h1>
-        <p className="text-slate-500 mt-2">Gestiona las empresas (plantas de áridos) dadas de alta en el SaaS.</p>
+    <div className="w-full max-w-[1600px] mx-auto px-4 md:px-10 py-8 space-y-10">
+      
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-[0.2em] mb-2">
+            Control de Mando SaaS
+          </div>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">
+            Administración Gravoka
+          </h1>
+          <p className="text-slate-500 mt-2 text-lg">Resumen de ingresos, suscripciones y crecimiento de la plataforma.</p>
+        </div>
+        
+        <div className="flex gap-3">
+          <button 
+            onClick={loadData}
+            className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-sm hover:bg-slate-50 transition-all"
+          >
+            <span className="material-symbols-outlined text-sm">refresh</span>
+            Actualizar Datos
+          </button>
+        </div>
       </div>
 
+      {/* SaaS Business KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard 
+          title="MRR Estimado" 
+          value={formatCurrency(saasStats?.mrrEstimado || 0)} 
+          icon="payments" 
+          secondary="Ingresos recurrentes"
+          color="bg-emerald-500"
+        />
+        <MetricCard 
+          title="Empresas Activas" 
+          value={saasStats?.empresasActivas.toString() || '0'} 
+          icon="corporate_fare" 
+          secondary={`${saasStats?.totalEmpresas} totales registradas`}
+          color="bg-blue-500"
+        />
+        <MetricCard 
+          title="Suscripciones Pro" 
+          value={saasStats?.planes.Pro.toString() || '0'} 
+          icon="verified" 
+          secondary="Plan más popular"
+          color="bg-primary"
+        />
+        <MetricCard 
+          title="Días p/ Cierre" 
+          value={(30 - new Date().getDate()).toString()} 
+          icon="calendar_month" 
+          secondary="Ciclo de facturación"
+          color="bg-slate-600"
+        />
+      </div>
+
+      {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Form to create new tenant */}
-        <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-200">Nueva Empresa Cliente</h2>
-            
-            {feedback && (
-              <div className={`p-4 mb-6 rounded-xl text-sm font-medium ${feedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                {feedback.text}
+        {/* Left: Companies Table */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h2 className="text-xl font-black">Empresas y Suscripciones</h2>
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                Total registrado: {empresas.length}
               </div>
-            )}
-
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre de la Empresa</label>
-                <input name="empresaNombre" required type="text" className="w-full px-4 py-2 border rounded-xl dark:bg-slate-950 dark:border-slate-800" placeholder="Ej. Áridos San Juan" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">RUT Empresa</label>
-                <input name="rut" type="text" className="w-full px-4 py-2 border rounded-xl dark:bg-slate-950 dark:border-slate-800" placeholder="76.123.456-K" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Email del Administrador</label>
-                <input name="adminEmail" required type="email" className="w-full px-4 py-2 border rounded-xl dark:bg-slate-950 dark:border-slate-800" placeholder="dueño@aridos.cl" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Contraseña Inicial</label>
-                <input name="adminPassword" required type="password" minLength={6} className="w-full px-4 py-2 border rounded-xl dark:bg-slate-950 dark:border-slate-800" placeholder="Mínimo 6 caracteres" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Plan Gravoka</label>
-                <select name="plan" className="w-full px-4 py-2 border rounded-xl dark:bg-slate-950 dark:border-slate-800">
-                  <option value="Básico">Básico</option>
-                  <option value="Pro">Pro</option>
-                  <option value="Enterprise">Enterprise</option>
-                </select>
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="w-full mt-4 flex items-center justify-center gap-2 bg-primary text-white py-3 px-4 rounded-xl font-bold hover:bg-primary/90 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Registrando...' : 'Registrar Empresa y Usuario'}
-                {!isSubmitting && <span className="material-symbols-outlined">person_add</span>}
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* List of tenants */}
-        <div className="lg:col-span-2">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Empresas Activas</h2>
-              <span className="bg-primary/10 text-primary font-bold px-3 py-1 rounded-full text-sm">{empresas.length} Totales</span>
             </div>
             
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 uppercase text-xs font-bold">
-                  <tr>
-                    <th className="px-6 py-4">Empresa</th>
-                    <th className="px-6 py-4">RUT</th>
-                    <th className="px-6 py-4">Plan Activo</th>
-                    <th className="px-6 py-4">ID de Entorno</th>
+                <thead>
+                  <tr className="bg-slate-50/50 dark:bg-slate-950/50">
+                    <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Cliente</th>
+                    <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Plan</th>
+                    <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Estado</th>
+                    <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Vencimiento</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {isLoadingData ? (
-                    <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500">Cargando base de datos...</td></tr>
-                  ) : empresas.length === 0 ? (
-                    <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500">No hay empresas registradas todavía.</td></tr>
-                  ) : (
-                    empresas.map((empresa) => (
-                      <tr key={empresa.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="px-6 py-4 font-bold text-slate-900 dark:text-slate-100">{empresa.nombre}</td>
-                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{empresa.rut}</td>
-                        <td className="px-6 py-4">
-                          <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2.5 py-1 rounded-full text-xs font-bold">
-                            {empresa.plan_activo}
+                    <tr><td colSpan={4} className="px-8 py-10 text-center text-slate-500 italic">Cargando datos maestros...</td></tr>
+                  ) : empresas.map((empresa) => (
+                    <tr key={empresa.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all">
+                      <td className="px-8 py-6">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-slate-900 dark:text-white">{empresa.nombre}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{empresa.rut}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase ${
+                          empresa.plan_activo === 'Enterprise' ? 'bg-slate-900 text-white' : 
+                          empresa.plan_activo === 'Pro' ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {empresa.plan_activo}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-2">
+                          <div className={`size-2 rounded-full animate-pulse ${empresa.estado === 'activo' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                          <span className={`text-xs font-bold uppercase ${empresa.estado === 'activo' ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {empresa.estado === 'activo' ? 'Activa' : 'Inactiva'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-slate-400 text-xs font-mono">{empresa.id.substring(0, 8)}...</td>
-                      </tr>
-                    ))
-                  )}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 text-sm font-medium text-slate-500">
+                        {empresa.fecha_vencimiento 
+                          ? new Date(empresa.fecha_vencimiento.seconds * 1000).toLocaleDateString('es-CL') 
+                          : 'Sin fecha'}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
 
+        {/* Right: Insights & Charts */}
+        <div className="space-y-8">
+          {/* Plan Distribution */}
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-8">Distribución por Plan</h3>
+            <div className="h-[200px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-8 space-y-3">
+              {pieData.map(d => (
+                <div key={d.name} className="flex items-center justify-between text-xs font-bold">
+                  <span className="flex items-center gap-2 text-slate-500">
+                    <div className="size-2 rounded-full" style={{ backgroundColor: d.color }} />
+                    {d.name}
+                  </span>
+                  <span className="text-slate-900 dark:text-white">{d.value} empresas</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Actions / Help */}
+          <div className="bg-primary p-8 rounded-[2rem] text-white shadow-xl shadow-primary/20 relative overflow-hidden">
+             <span className="material-symbols-outlined absolute -bottom-4 -right-4 text-9xl opacity-10">hub</span>
+             <h3 className="text-xl font-black mb-4">Administración Central</h3>
+             <p className="text-sm opacity-90 leading-relaxed mb-6">
+                Desde aquí supervisas todo el ecosistema de Gravoka. Puedes gestionar nuevas altas, monitorizar ingresos y suspender servicios por falta de pago.
+             </p>
+             <button 
+               onClick={() => router.push('/admin/configuracion')}
+               className="w-full bg-white text-primary py-3 rounded-xl font-black text-sm hover:bg-slate-50 transition-all uppercase tracking-wider"
+             >
+                Ir a Configuración SaaS
+             </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ title, value, icon, secondary, color }: { title: string, value: string, icon: string, secondary: string, color: string }) {
+  return (
+    <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-6 group hover:border-primary/30 transition-all">
+      <div className="flex items-center justify-between">
+        <div className={`size-14 rounded-2xl ${color} flex items-center justify-center text-white shadow-lg`}>
+          <span className="material-symbols-outlined text-3xl font-light">{icon}</span>
+        </div>
+        <div className="flex flex-col text-right">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</span>
+          <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mt-1">{value}</span>
+        </div>
+      </div>
+      <div className="text-xs font-bold text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-4 mt-auto lowercase">
+        {secondary}
       </div>
     </div>
   );

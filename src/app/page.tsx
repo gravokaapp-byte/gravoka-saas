@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
@@ -22,7 +23,14 @@ interface ClientMap {
 
 export default function Dashboard() {
   const { profile } = useAuth();
+  const router = useRouter();
   const [activeChartFilter, setActiveChartFilter] = useState('Semana Actual');
+
+  useEffect(() => {
+    if (profile?.rol === 'superadmin') {
+      router.push('/admin');
+    }
+  }, [profile, router]);
   
   const [stats, setStats] = useState({ ventas: 0, volumen: 0, guias: 0 });
   const [recentGuias, setRecentGuias] = useState<Guia[]>([]);
