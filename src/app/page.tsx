@@ -121,9 +121,19 @@ export default function Dashboard() {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
   };
 
+  const parseDate = (dateField: any) => {
+    if (!dateField) return null;
+    if (dateField.seconds) return new Date(dateField.seconds * 1000); // Firestore Timestamp
+    if (typeof dateField === 'string') return new Date(dateField); // ISO String
+    if (dateField instanceof Date) return dateField;
+    return null;
+  };
+
   const daysRemaining = () => {
-    if (!empresaData?.fecha_vencimiento) return null;
-    const expiry = new Date(empresaData.fecha_vencimiento.seconds * 1000);
+    const rawDate = empresaData?.fecha_vencimiento || empresaData?.vencimiento;
+    const expiry = parseDate(rawDate);
+    if (!expiry) return null;
+    
     const now = new Date();
     return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   };
@@ -227,7 +237,7 @@ export default function Dashboard() {
                 <span className="text-[10px] uppercase bg-white/50 px-2 py-0.5 rounded-full border border-current/20">Activo</span>
               </p>
               <p className="text-xs opacity-70">
-                Tu suscripción vence el {new Date(empresaData.fecha_vencimiento.seconds * 1000).toLocaleDateString('es-CL')}
+                Tu suscripción vence el {parseDate(empresaData.fecha_vencimiento || empresaData.vencimiento)?.toLocaleDateString('es-CL') || 'N/A'}
               </p>
             </div>
           </div>
