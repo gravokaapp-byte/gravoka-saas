@@ -29,12 +29,19 @@ if (!admin.apps.length) {
       // 2. No es JSON, proceder con limpieza PEM
       const bodyMatch = privateKeyFromEnv.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/);
       if (bodyMatch) {
-         // Quitar escapes literales de \n, \r y cualquier cosa que no sea base64
-        const bodyClean = bodyMatch[1].replace(/\\n/g, '').replace(/[^A-Za-z0-9+/=]/g, '');
+        // Quitar escapes literales de \n, \r y cualquier cosa que no sea base64
+        let bodyClean = bodyMatch[1].replace(/\\n/g, '').replace(/[^A-Za-z0-9+/=]/g, '');
+        
+        // --- GUARDIA DE LONGITUD (v8.0) ---
+        // Las llaves de 2048 bits usualmente tienen 1624 caracteres de base64.
+        // Si detectamos 1625, es el famoso carácter 'n' huérfano o un espacio extra.
+        if (bodyClean.length === 1625) {
+          bodyClean = bodyClean.substring(0, 1624);
+        }
+        
         // Reconstruir con cabeceras estándar
         finalKey = `-----BEGIN PRIVATE KEY-----\n${bodyClean}\n-----END PRIVATE KEY-----\n`;
       } else {
-        // Fallback: tratar como llave con escapes de \n
         finalKey = privateKeyFromEnv.replace(/\\n/g, '\n').trim();
       }
     }
