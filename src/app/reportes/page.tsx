@@ -81,25 +81,33 @@ export default function ReportesPage() {
 
   const exportToExcel = () => {
     const data = filteredGuias.map(g => ({
-      ID: g.id,
-      Fecha: g.creado_en?.toDate().toLocaleString() || 'N/A',
-      Empresa: profile?.empresa_id || 'N/A', // O buscar nombre empresa
+      'Folio Interno': g.id.slice(-6).toUpperCase(),
+      'ID Completo': g.id,
+      Fecha: g.creado_en?.toDate().toLocaleString('es-CL') || 'N/A',
       Cliente: g.cliente_nombre,
       Material: g.material_nombre,
-      'M3 Despachados': g.cantidad,
+      'Cantidad (m³)': g.cantidad,
       'Precio Unitario': g.total_estimado / (g.cantidad || 1),
-      'Venta Neta': g.total_estimado,
-      'Costo Flete': g.flete_costo || 0,
+      'Venta Bruta': g.total_estimado,
+      'Costo flete': g.flete_costo || 0,
       'Utilidad Real': g.total_estimado - (g.flete_costo || 0),
       Camion: g.camion_patente,
       Chofer: g.conductor_nombre,
+      'Método de Pago': g.metodo_pago?.toUpperCase() || 'N/A',
       Estado: g.estado,
       Destino: g.destino || 'Punto de Venta'
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
+    
+    // Configurar autofiltros
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Reporte_Gravoka");
+    
+    // Escribir el archivo
     XLSX.writeFile(wb, `Reporte_Gravoka_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 

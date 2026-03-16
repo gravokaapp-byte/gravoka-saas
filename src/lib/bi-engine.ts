@@ -12,6 +12,7 @@ export interface GuiaData {
   creado_en: any;
   estado: string;
   flete_costo?: number;
+  metodo_pago?: string;
   destino?: string;
 }
 
