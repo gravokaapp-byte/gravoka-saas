@@ -11,29 +11,29 @@ const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').trim();
 let adminError: string | null = null;
 
 if (!admin.apps.length) {
-  if (!projectId || !clientEmail || !privateKey) {
-    adminError = 'Firebase Admin credentials missing. projectId: ' + (projectId ? 'OK' : 'MISSING') + ', email: ' + (clientEmail ? 'OK' : 'MISSING') + ', key: ' + (privateKey ? 'OK' : 'MISSING');
-  } else {
     let finalKey: string = 'Not processed';
     try {
-      const bodyMatch = privateKey.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/);
-      
-      if (bodyMatch) {
-        const bodyWithoutEscapes = bodyMatch[1].replace(/\\n/g, '');
-        const bodyClean = bodyWithoutEscapes.replace(/[^A-Za-z0-9+/=]/g, '');
-        const wrappedBody = (bodyClean.match(/.{1,64}/g) || []).join('\n');
-        finalKey = `-----BEGIN PRIVATE KEY-----\n${wrappedBody}\n-----END PRIVATE KEY-----\n`;
-      } else {
-        finalKey = privateKey.replace(/\\n/g, '\n');
+      // 1. Verificar si es un JSON (error común al pegar)
+      try {
+        const potentialJson = JSON.parse(privateKey);
+        if (potentialJson.private_key) {
+          finalKey = potentialJson.private_key;
+        } else {
+           throw new Error('Not the right JSON');
+        }
+      } catch (e) {
+        // No es JSON, proceder con limpieza estándar pero robusta
+        const bodyMatch = privateKey.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/);
+        if (bodyMatch) {
+          const bodyClean = bodyMatch[1].replace(/\\n/g, '').replace(/[^A-Za-z0-9+/=]/g, '');
+          const wrappedBody = (bodyClean.match(/.{1,64}/g) || []).join('\n');
+          finalKey = `-----BEGIN PRIVATE KEY-----\n${wrappedBody}\n-----END PRIVATE KEY-----\n`;
+        } else {
+          finalKey = privateKey.replace(/\\n/g, '\n').trim();
+        }
       }
       
-      // Intentar limpiar cualquier app previa que haya podido quedar en un estado inconsistente
-      // (En Next.js dev mode o tras errores de redeploy parcial)
-      if (admin.apps.length > 0) {
-        // En un entorno serverless no podemos borrar apps fácilmente pero podemos intentar
-        // usar la existente o ignorar si ya falló. 
-        console.log('Using existing firebase app');
-      } else {
+      if (!admin.apps.length) {
         admin.initializeApp({
           credential: admin.credential.cert({
             projectId: projectId,
@@ -45,7 +45,7 @@ if (!admin.apps.length) {
       }
     } catch (error: any) {
       console.error('Firebase Admin initialization error:', error);
-      const keyDebug = ` (ProcessedKey: len=${finalKey.length}, start=${finalKey.substring(0, 25)}, end=${finalKey.substring(finalKey.length-25)})`;
+      const keyDebug = ` (ProcessedKey: len=${finalKey.length}, start=${finalKey.substring(0, 25)}, end=${finalKey.substring(finalKey.length-5)})`;
       adminError = (error.message || 'Error desconocido') + keyDebug;
     }
   }
