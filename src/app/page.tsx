@@ -38,6 +38,11 @@ export default function Dashboard() {
       router.push('/admin');
     }
   }, [profile, router]);
+  const [stats, setStats] = useState({ ventas: 0, volumen: 0, guias: 0 });
+  const [recentGuias, setRecentGuias] = useState<Guia[]>([]);
+  const [clientNames, setClientNames] = useState<ClientMap>({});
+  const [empresaData, setEmpresaData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Si es superadmin o está cargando el profile, NO MOSTRAR NUNCA el dashboard de cliente
   const isActuallyLoading = isLoading || !profile || profile.rol === 'superadmin';
