@@ -92,6 +92,7 @@ export default function GuiasPage() {
     return price * qty;
   }, [selectedMaterial, quantity]);
 
+  const [fleteCost, setFleteCost] = useState('');
   const [showToast, setShowToast] = useState(false);
 
   const handleEmitir = async () => {
@@ -115,6 +116,7 @@ export default function GuiasPage() {
         cantidad: parseFloat(quantity),
         metodo_pago: paymentMethod,
         total_estimado: total,
+        flete_costo: parseFloat(fleteCost) || 0,
         camion_id: selectedCamionId,
         camion_patente: selectedCamion?.patente,
         conductor_nombre: selectedCamion?.conductor_nombre,
@@ -135,6 +137,7 @@ export default function GuiasPage() {
         setSelectedMaterialId('');
         setSelectedCamionId('');
         setQuantity('');
+        setFleteCost('');
         setPaymentMethod(null);
       }, 500);
 
@@ -216,7 +219,7 @@ export default function GuiasPage() {
                     ))}
                   </select>
                 </label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <label className="flex flex-col gap-2">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">CANTIDAD (m³)</span>
                     <input 
@@ -227,8 +230,18 @@ export default function GuiasPage() {
                       className="h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-2xl font-bold text-primary focus:border-primary focus:ring-0" 
                     />
                   </label>
-                  <div className="flex flex-col gap-2">
-                    <span className="text-sm font-bold text-slate-400">TOTAL ESTIMADO</span>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">COSTO FLETE ($)</span>
+                    <input 
+                      type="number" 
+                      value={fleteCost}
+                      onChange={(e) => setFleteCost(e.target.value)}
+                      placeholder="0"
+                      className="h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-2xl font-bold text-blue-500 focus:border-blue-500 focus:ring-0" 
+                    />
+                  </label>
+                  <div className="flex flex-col gap-2 col-span-2 md:col-span-1">
+                    <span className="text-sm font-bold text-slate-400 uppercase">Total Bruto</span>
                     <div className="h-16 w-full flex items-center px-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-2xl font-black text-slate-400">
                       {formatCurrency(total)}
                     </div>

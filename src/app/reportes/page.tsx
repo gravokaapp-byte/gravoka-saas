@@ -326,7 +326,7 @@ export default function ReportesPage() {
                   <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Cliente / Material</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Patente / Chofer</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 text-center">Cantidad</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Venta Neta</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Flujo de Caja (Bruto/Flete/Neto)</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 text-right">Estado</th>
                 </tr>
               </thead>
@@ -353,15 +353,19 @@ export default function ReportesPage() {
                         <span className="text-xs text-slate-500 italic">{g.conductor_nombre}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-5 text-center">
+                   <td className="px-6 py-5 text-center">
                       <div className="inline-flex items-center justify-center size-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-black">
                         {g.cantidad}
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
-                        <span className="text-base font-black text-slate-900 dark:text-white">{formatCurrency(g.total_estimado)}</span>
-                        <span className="text-[10px] text-emerald-500 font-bold">U. Neta: {formatCurrency(g.total_estimado - (g.flete_costo || 0))}</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">Bruto: {formatCurrency(g.total_estimado)}</span>
+                        <span className="text-xs text-blue-500 font-bold">Flete: {formatCurrency(g.flete_costo || 0)}</span>
+                        <div className="mt-1 flex items-center gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+                          <span className="text-[10px] uppercase font-black text-slate-400">Neto:</span>
+                          <span className="text-sm font-black text-emerald-500">{formatCurrency(g.total_estimado - (g.flete_costo || 0))}</span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-5 text-right">
