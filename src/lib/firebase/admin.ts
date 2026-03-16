@@ -40,7 +40,10 @@ if (!admin.apps.length) {
       console.log('Firebase Admin initialized successfully.');
     } catch (error: any) {
       console.error('Firebase Admin initialization error:', error);
-      adminError = error.message || 'Error desconocido al inicializar';
+      const keyDebug = typeof finalKey !== 'undefined' ? 
+        ` (ProcessedKey: len=${finalKey.length}, start=${finalKey.substring(0, 25)}, end=${finalKey.substring(finalKey.length-25)})` : 
+        ' (Key undefined)';
+      adminError = (error.message || 'Error desconocido') + keyDebug;
     }
   }
 }

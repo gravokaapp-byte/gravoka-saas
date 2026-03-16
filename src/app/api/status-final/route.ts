@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   return NextResponse.json({
     status: 'online',
-    version: 'FINAL_DEBUG_3.0',
+    version: 'FINAL_DEBUG_3.1',
     timestamp: new Date().toISOString(),
     initialized: !!adminDb,
     error: adminError || 'Ningún error reportado',
