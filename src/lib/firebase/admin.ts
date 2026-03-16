@@ -21,10 +21,11 @@ if (!admin.apps.length) {
       const bodyMatch = privateKey.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/);
       
       if (bodyMatch) {
-        // Limpiar el cuerpo de cualquier cosa que no sea base64 (espacios, \n literal, \n escapado, etc.)
-        const bodyWithNewlines = bodyMatch[1].replace(/\\n/g, '').replace(/\s/g, '');
+        // Limpieza EXTREMA: Solo permitir caracteres Base64
+        // Eliminamos \n, \r, espacios, escapes literal \\n, y cualquier otro caracter invisible.
+        const bodyClean = bodyMatch[1].replace(/[^A-Za-z0-9+/=]/g, '');
         // Reconstruir con cabeceras limpias y saltos de línea reales
-        finalKey = `-----BEGIN PRIVATE KEY-----\n${bodyWithNewlines}\n-----END PRIVATE KEY-----`;
+        finalKey = `-----BEGIN PRIVATE KEY-----\n${bodyClean}\n-----END PRIVATE KEY-----`;
       } else {
         // Fallback: tratar de limpiar lo que sea que venga
         finalKey = privateKey.trim().replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
