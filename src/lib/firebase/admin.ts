@@ -15,18 +15,27 @@ if (!admin.apps.length) {
     adminError = 'Firebase Admin credentials missing. projectId: ' + (projectId ? 'OK' : 'MISSING') + ', email: ' + (clientEmail ? 'OK' : 'MISSING') + ', key: ' + (privateKey ? 'OK' : 'MISSING');
   } else {
     try {
-      // Limpiar la llave de posibles comillas, escapes de \n o caracteres \r tras pegar en Vercel
-      const formattedKey = privateKey
-        .trim()
-        .replace(/^["']|["']$/g, '') 
-        .replace(/\\n/g, '\n')
-        .replace(/\r/g, '');
+      // Limpieza quirúrgica: eliminar comillas, espacios al inicio/fin, 
+      // y normalizar escapes de \n que a veces Vercel duplica o malinterpreta.
+      let sanitizedKey = privateKey.trim();
+      
+      // Eliminar comillas envolventes si existen
+      if ((sanitizedKey.startsWith('"') && sanitizedKey.endsWith('"')) || 
+          (sanitizedKey.startsWith("'") && sanitizedKey.endsWith("'"))) {
+        sanitizedKey = sanitizedKey.substring(1, sanitizedKey.length - 1);
+      }
 
+      // Reemplazar escapes literales de \n por saltos de línea reales
+      sanitizedKey = sanitizedKey.replace(/\\n/g, '\n');
+
+      // Si por alguna razón la llave no tiene los headers PEM, no funcionará, 
+      // pero aquí asumimos que los tiene según el audit anterior.
+      
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId: projectId,
           clientEmail: clientEmail,
-          privateKey: formattedKey,
+          privateKey: sanitizedKey,
         }),
       });
       console.log('Firebase Admin initialized successfully.');
