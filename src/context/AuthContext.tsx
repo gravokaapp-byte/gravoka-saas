@@ -97,8 +97,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // SaaS Paywall Logic (Block suspended/inactive tenants)
       if (fetchedEmpresaData && fetchedEmpresaData.estado !== 'activo') {
-        // If they are not active, they can ONLY visit the subscription page (or login, which is handled above)
-        if (pathname !== '/suscripcion') {
+        // If they are not active, they can ONLY visit the subscription page (or login/API routes)
+        if (pathname !== '/suscripcion' && !pathname.startsWith('/api')) {
           console.warn('Redirecting inactive tenant to /suscripcion');
           router.push('/suscripcion');
           return;
