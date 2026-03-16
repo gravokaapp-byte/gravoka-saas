@@ -14,12 +14,12 @@ if (!admin.apps.length) {
   if (!projectId || !clientEmail || !privateKey) {
     adminError = 'Firebase Admin credentials missing. projectId: ' + (projectId ? 'OK' : 'MISSING') + ', email: ' + (clientEmail ? 'OK' : 'MISSING') + ', key: ' + (privateKey ? 'OK' : 'MISSING');
   } else {
+    let finalKey: string = 'Not processed';
     try {
       // --- LIMPIEZA NUCLEAR ---
       // 1. Extraer solo el contenido base64 entre los headers
       const bodyMatch = privateKey.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/);
       
-      let finalKey: string;
       if (bodyMatch) {
         // Limpiar el cuerpo de cualquier cosa que no sea base64 (espacios, \n literal, \n escapado, etc.)
         const bodyWithNewlines = bodyMatch[1].replace(/\\n/g, '').replace(/\s/g, '');
