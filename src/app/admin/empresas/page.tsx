@@ -13,8 +13,10 @@ import {
   CheckCircle,
   Trash2,
   Mail,
-  Edit2
+  Edit2,
+  Plus
 } from 'lucide-react';
+import { createTenantAction } from '@/app/actions/tenantActions';
 
 interface Empresa {
   id: string;
@@ -33,6 +35,8 @@ export default function EmpresasAdminPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
 
   useEffect(() => {
     if (!loading && profile?.rol !== 'superadmin') router.push('/');
@@ -198,6 +202,13 @@ export default function EmpresasAdminPage() {
           <p className="text-slate-500">Administración detallada de todas las empresas en la plataforma.</p>
         </div>
         <div className="flex gap-4">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-sm">add</span>
+            Nueva Empresa
+          </button>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
             <input 
@@ -210,6 +221,69 @@ export default function EmpresasAdminPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8">
+              <h2 className="text-2xl font-black mb-2">Nueva Empresa SaaS</h2>
+              <p className="text-slate-500 text-sm mb-8">Registra manualmente un nuevo cliente y su cuenta de administrador.</p>
+              
+              <form action={async (formData) => {
+                setIsLoadingModal(true);
+                const res = await createTenantAction(formData);
+                setIsLoadingModal(false);
+                if (res.success) {
+                  setIsAddModalOpen(false);
+                  loadEmpresas();
+                  alert(res.message);
+                } else {
+                  alert(res.error);
+                }
+              }} className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Nombre Empresa</label>
+                    <input name="empresaNombre" required className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-950 font-bold" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">RUT</label>
+                    <input name="rut" className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-950 font-bold" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400">Email Administrador</label>
+                  <input name="adminEmail" type="email" required className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-950 font-bold" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Contraseña Temporal</label>
+                    <input name="adminPassword" type="password" required className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-950 font-bold" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Plan</label>
+                    <select name="plan" className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-950 font-bold appearance-none">
+                      <option value="Pro (Demo)">Pro (Demo)</option>
+                      <option value="Básico">Básico</option>
+                      <option value="Enterprise">Enterprise</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 py-4 font-black uppercase text-xs tracking-widest text-slate-400">Cancelar</button>
+                  <button type="submit" disabled={isLoadingModal} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20">
+                    {isLoadingModal ? 'Creando...' : 'Registrar Empresa'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
         <table className="w-full text-left">

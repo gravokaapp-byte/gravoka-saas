@@ -41,6 +41,24 @@ export async function POST(request: Request) {
                 ultimo_pago_id: paymentInfo.id
              });
              
+             // --- NOTIFICACIÓN PARA MANUEL (SUPERADMIN) ---
+             try {
+               const empresaSnap = await adminDb.collection('empresas').doc(empresaId.toString()).get();
+               const empresaNombre = empresaSnap.data()?.nombre || empresaId;
+               
+               await adminDb.collection('notificaciones_saas').add({
+                  type: 'payment_success',
+                  title: '¡Pago Recibido! 💰',
+                  message: `La empresa ${empresaNombre} ha renovado su plan.`,
+                  read: false,
+                  createdAt: new Date().toISOString(),
+                  isSuperAdmin: true,
+                  metadata: { empresaId, paymentId }
+               });
+             } catch (nError) {
+               console.error('Error al notificar pago:', nError);
+             }
+             
              await logToDb('webhook_success', `Empresa ${empresaId} activada exitosamente`, { paymentId });
              return NextResponse.json({ success: true, message: 'Tenant activado' }, { status: 200 });
           } else {

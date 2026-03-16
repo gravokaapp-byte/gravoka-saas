@@ -77,10 +77,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
 
       // --- Authorization Logic ---
+      const publicPaths = ['/login', '/registro', '/'];
+      const isPublicPath = publicPaths.includes(pathname);
       
-      // If no user, redirect to login unless already on login page
+      // If no user, redirect to login unless on a public page
       if (!currentUser) {
-        if (pathname !== '/login') {
+        if (!isPublicPath) {
           router.push('/login');
         }
         return; // Stop further checks for unauthenticated users
@@ -148,7 +150,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user && pathname !== '/login') {
+  const publicPaths = ['/login', '/registro', '/'];
+  const isPublicPath = publicPaths.includes(pathname);
+
+  if (!user && !isPublicPath) {
     return null;
   }
 

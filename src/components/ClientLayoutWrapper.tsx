@@ -8,10 +8,12 @@ import { AuthProvider } from '@/context/AuthContext';
 export default function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
+  const isRegistroPage = pathname === '/registro';
+  const isPublicPage = isLoginPage || isRegistroPage;
 
   return (
     <AuthProvider>
-      {isLoginPage ? (
+      {isPublicPage ? (
         children
       ) : (
         <div className="flex h-screen overflow-hidden">

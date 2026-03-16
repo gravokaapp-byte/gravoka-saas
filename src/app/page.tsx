@@ -44,8 +44,9 @@ export default function Dashboard() {
   const [empresaData, setEmpresaData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Si es superadmin o está cargando el profile, NO MOSTRAR NUNCA el dashboard de cliente
-  const isActuallyLoading = isLoading || !profile || profile.rol === 'superadmin';
+  // Si está cargando el profile, mostrar spinner. 
+  // Pero si ya tenemos el profile, NO bloquear con isActuallyLoading si es superadmin (permitir que el router.push haga lo suyo)
+  const isActuallyLoading = (isLoading || !profile) && !profile?.rol;
 
   useEffect(() => {
     // Fetch Empresa Data for subscription info
@@ -140,7 +141,70 @@ export default function Dashboard() {
     );
   }
 
-  if (!profile) return null;
+  // --- LANDING PAGE PARA INVITADOS ---
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white selection:bg-primary selection:text-white overflow-x-hidden">
+        {/* Nav */}
+        <nav className="fixed top-0 w-full z-50 px-8 py-6 flex justify-between items-center backdrop-blur-md bg-slate-950/50 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="material-symbols-outlined text-white text-2xl">rocket_launch</span>
+            </div>
+            <span className="text-xl font-black tracking-tighter uppercase">Gravoka</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link href="/login" className="text-sm font-bold text-slate-400 hover:text-white transition-colors">Entrar</Link>
+            <Link href="/registro" className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+              Comenzar Ahora
+            </Link>
+          </div>
+        </nav>
+
+        {/* Hero */}
+        <div className="relative pt-40 pb-32 px-8 flex flex-col items-center">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none opacity-20">
+             <div className="absolute top-[20%] left-[10%] w-64 h-64 bg-primary blur-[120px] rounded-full"></div>
+             <div className="absolute top-[40%] right-[10%] w-96 h-96 bg-blue-500 blur-[150px] rounded-full"></div>
+          </div>
+          
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-8 backdrop-blur-xl animate-bounce">
+            <span className="size-2 bg-primary rounded-full animate-pulse"></span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Versión 2.0 Operativa</span>
+          </div>
+
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-center max-w-4xl mb-8 leading-[0.9]">
+             DIGITALIZA TU <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">PLANTA</span> EN MINUTOS
+          </h1>
+          
+          <p className="text-lg md:text-xl text-slate-400 text-center max-w-2xl mb-12 font-medium">
+            Control de pesaje, guías de despacho y analítica BI para empresas de áridos. Todo en la nube, todo en tiempo real.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+             <Link href="/registro" className="px-10 py-5 bg-primary text-white rounded-2xl font-black text-lg shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+               Empieza Gratis <span className="material-symbols-outlined font-bold">arrow_forward</span>
+             </Link>
+             <Link href="/login" className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-lg hover:bg-white/10 transition-all">
+               Ver Demo
+             </Link>
+          </div>
+
+          {/* Mockup Preview */}
+          <div className="mt-24 w-full max-w-5xl bg-slate-900 border border-white/10 rounded-[40px] p-4 shadow-[0_0_80px_rgba(0,0,0,0.5)] overflow-hidden">
+             <div className="aspect-video bg-slate-800 rounded-[28px] overflow-hidden flex items-center justify-center p-8 grayscale opacity-50 border border-white/5 relative">
+                <span className="material-symbols-outlined text-9xl text-white/5">dashboard</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                <div className="absolute bottom-12 left-12">
+                   <p className="text-2xl font-black">Control Total</p>
+                   <p className="text-sm text-slate-500">Analítica avanzada integrada</p>
+                </div>
+             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
