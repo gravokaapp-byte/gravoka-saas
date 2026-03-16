@@ -59,7 +59,9 @@ if (!admin.apps.length) {
     console.log('Firebase Admin initialized successfully.');
   } catch (error: any) {
     console.error('Firebase Admin initialization error:', error);
-    const keyDebug = ` (ProcessedLen=${finalKey.length}, EnvLen=${privateKeyFromEnv.length})`;
+    const bodyStart = finalKey.replace(/-----BEGIN PRIVATE KEY-----/g, '').trim().substring(0, 40);
+    const bodyEnd = finalKey.replace(/-----END PRIVATE KEY-----/g, '').trim().slice(-20);
+    const keyDebug = ` (Len=${finalKey.length}, S='${bodyStart}', E='${bodyEnd}')`;
     adminError = (error.message || 'Error desconocido') + keyDebug;
   }
 }
