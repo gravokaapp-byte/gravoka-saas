@@ -8,7 +8,7 @@ const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIR
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-let adminError = null;
+let adminError: string | null = null;
 
 if (!admin.apps.length) {
   if (!projectId || !clientEmail || !privateKey) {
