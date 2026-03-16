@@ -27,23 +27,26 @@ if (!admin.apps.length) {
       }
     } catch (e) {
       // 2. No es JSON, proceder con limpieza PEM
-      const bodyMatch = privateKeyFromEnv.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/);
-      if (bodyMatch) {
-        // Quitar escapes literales de \n, \r y cualquier cosa que no sea base64
-        let bodyClean = bodyMatch[1].replace(/\\n/g, '').replace(/[^A-Za-z0-9+/=]/g, '');
-        
-        // --- GUARDIA DE LONGITUD (v8.0) ---
-        // Las llaves de 2048 bits usualmente tienen 1624 caracteres de base64.
-        // Si detectamos 1625, es el famoso carácter 'n' huérfano o un espacio extra.
-        if (bodyClean.length === 1625) {
-          bodyClean = bodyClean.substring(0, 1624);
-        }
-        
-        // Reconstruir con cabeceras estándar
-        finalKey = `-----BEGIN PRIVATE KEY-----\n${bodyClean}\n-----END PRIVATE KEY-----\n`;
-      } else {
-        finalKey = privateKeyFromEnv.replace(/\\n/g, '\n').trim();
+      // Extraemos solo el cuerpo base64
+      const bodyOnly = privateKeyFromEnv
+        .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+        .replace(/-----END PRIVATE KEY-----/g, '')
+        .replace(/\\n/g, '')
+        .replace(/[^A-Za-z0-9+/=]/g, ''); // Solo caracteres Base64
+      
+      // ELIMINACION DE CARACTERES HUEFANOS (v9.0)
+      // Un Base64 válido debe ser múltiplo de 4. 
+      // Si sobra 1 (ej 1625), usualmente es una 'n' de un \n real mal procesado o un espacio.
+      let bodyFixed = bodyOnly;
+      if (bodyFixed.length % 4 !== 0) {
+          const extra = bodyFixed.length % 4;
+          // Si solo sobra 1, lo quitamos (lo más común en errores de pegado/vercel)
+          if (extra === 1) {
+              bodyFixed = bodyFixed.substring(0, bodyFixed.length - 1);
+          }
       }
+      
+      finalKey = `-----BEGIN PRIVATE KEY-----\n${bodyFixed}\n-----END PRIVATE KEY-----\n`;
     }
 
     admin.initializeApp({

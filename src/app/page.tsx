@@ -34,15 +34,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (profile?.rol === 'superadmin') {
+      console.log('Redirecting superadmin to /admin');
       router.push('/admin');
     }
   }, [profile, router]);
   
-  const [stats, setStats] = useState({ ventas: 0, volumen: 0, guias: 0 });
-  const [recentGuias, setRecentGuias] = useState<Guia[]>([]);
-  const [clientNames, setClientNames] = useState<ClientMap>({});
-  const [empresaData, setEmpresaData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Si es superadmin o está cargando el profile, NO MOSTRAR NUNCA el dashboard de cliente
+  const isActuallyLoading = isLoading || !profile || profile.rol === 'superadmin';
 
   useEffect(() => {
     // Fetch Empresa Data for subscription info
@@ -124,10 +122,15 @@ export default function Dashboard() {
     return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  if (isLoading || (profile && profile.rol === 'superadmin')) {
+  if (isActuallyLoading) {
     return (
-      <div className="w-full flex justify-center py-20 min-h-screen items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="w-full flex justify-center py-20 min-h-screen items-center bg-slate-50">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-slate-500 font-medium">
+            {profile?.rol === 'superadmin' ? 'Redirigiendo al Panel SaaS...' : 'Cargando datos...'}
+          </p>
+        </div>
       </div>
     );
   }
