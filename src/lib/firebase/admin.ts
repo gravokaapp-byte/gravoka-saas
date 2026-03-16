@@ -27,26 +27,24 @@ if (!admin.apps.length) {
       }
     } catch (e) {
       // 2. No es JSON, proceder con limpieza PEM
-      // Extraemos solo el cuerpo base64
+      // Extraemos solo el cuerpo base64, eliminando cabeceras, escapes Y saltos de línea reales
       const bodyOnly = privateKeyFromEnv
         .replace(/-----BEGIN PRIVATE KEY-----/g, '')
         .replace(/-----END PRIVATE KEY-----/g, '')
         .replace(/\\n/g, '')
-        .replace(/[^A-Za-z0-9+/=]/g, ''); // Solo caracteres Base64
+        .replace(/\n/g, '')
+        .replace(/\r/g, '')
+        .replace(/\s/g, ''); // Eliminar todos los espacios
       
-      // ELIMINACION DE CARACTERES HUEFANOS (v9.0)
-      // Un Base64 válido debe ser múltiplo de 4. 
-      // Si sobra 1 (ej 1625), usualmente es una 'n' de un \n real mal procesado o un espacio.
-      let bodyFixed = bodyOnly;
-      if (bodyFixed.length % 4 !== 0) {
-          const extra = bodyFixed.length % 4;
-          // Si solo sobra 1, lo quitamos (lo más común en errores de pegado/vercel)
-          if (extra === 1) {
-              bodyFixed = bodyFixed.substring(0, bodyFixed.length - 1);
-          }
+      // RESTAURAR PADDING (v11.0)
+      // No cortamos caracteres, al revés, nos aseguramos que sea múltiplo de 4
+      // para que el parser ASN.1 sea feliz.
+      let bodyFormatted = bodyOnly;
+      while (bodyFormatted.length % 4 !== 0) {
+        bodyFormatted += '=';
       }
       
-      finalKey = `-----BEGIN PRIVATE KEY-----\n${bodyFixed}\n-----END PRIVATE KEY-----\n`;
+      finalKey = `-----BEGIN PRIVATE KEY-----\n${bodyFormatted}\n-----END PRIVATE KEY-----\n`;
     }
 
     admin.initializeApp({
