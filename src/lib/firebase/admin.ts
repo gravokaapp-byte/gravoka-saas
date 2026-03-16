@@ -15,16 +15,18 @@ if (!admin.apps.length) {
     adminError = 'Firebase Admin credentials missing. projectId: ' + (projectId ? 'OK' : 'MISSING') + ', email: ' + (clientEmail ? 'OK' : 'MISSING') + ', key: ' + (privateKey ? 'OK' : 'MISSING');
   } else {
     try {
-      // Extracción robusta: capturar solo el bloque entre los headers PEM
-      // Esto elimina cualquier basura, espacios o caracteres DER extra que 
-      // Vercel o el usuario hayan podido añadir involuntariamente.
-      const pemMatch = privateKey.match(/-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----/);
+      // --- LIMPIEZA NUCLEAR ---
+      // 1. Extraer solo el contenido base64 entre los headers
+      const bodyMatch = privateKey.match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/);
       
       let finalKey: string;
-      if (pemMatch) {
-        finalKey = pemMatch[0].replace(/\\n/g, '\n');
+      if (bodyMatch) {
+        // Limpiar el cuerpo de cualquier cosa que no sea base64 (espacios, \n literal, \n escapado, etc.)
+        const bodyWithNewlines = bodyMatch[1].replace(/\\n/g, '').replace(/\s/g, '');
+        // Reconstruir con cabeceras limpias y saltos de línea reales
+        finalKey = `-----BEGIN PRIVATE KEY-----\n${bodyWithNewlines}\n-----END PRIVATE KEY-----`;
       } else {
-        // Si no hay headers, intentamos limpiar lo que haya
+        // Fallback: tratar de limpiar lo que sea que venga
         finalKey = privateKey.trim().replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
       }
       
