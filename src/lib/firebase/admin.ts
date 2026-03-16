@@ -49,7 +49,6 @@ if (!admin.apps.length) {
       adminError = (error.message || 'Error desconocido') + keyDebug;
     }
   }
-}
 
 // Safely export services only if initialized
 const adminAuth = (admin.apps.length > 0 ? admin.auth() : null) as admin.auth.Auth;
