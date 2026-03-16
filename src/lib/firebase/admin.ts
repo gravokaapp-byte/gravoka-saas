@@ -15,27 +15,24 @@ if (!admin.apps.length) {
     adminError = 'Firebase Admin credentials missing. projectId: ' + (projectId ? 'OK' : 'MISSING') + ', email: ' + (clientEmail ? 'OK' : 'MISSING') + ', key: ' + (privateKey ? 'OK' : 'MISSING');
   } else {
     try {
-      // Limpieza quirúrgica: eliminar comillas, espacios al inicio/fin, 
-      // y normalizar escapes de \n que a veces Vercel duplica o malinterpreta.
-      let sanitizedKey = privateKey.trim();
+      // Extracción robusta: capturar solo el bloque entre los headers PEM
+      // Esto elimina cualquier basura, espacios o caracteres DER extra que 
+      // Vercel o el usuario hayan podido añadir involuntariamente.
+      const pemMatch = privateKey.match(/-----BEGIN PRIVATE KEY-----[\s\S]+?-----END PRIVATE KEY-----/);
       
-      // Eliminar comillas envolventes si existen
-      if ((sanitizedKey.startsWith('"') && sanitizedKey.endsWith('"')) || 
-          (sanitizedKey.startsWith("'") && sanitizedKey.endsWith("'"))) {
-        sanitizedKey = sanitizedKey.substring(1, sanitizedKey.length - 1);
+      let finalKey: string;
+      if (pemMatch) {
+        finalKey = pemMatch[0].replace(/\\n/g, '\n');
+      } else {
+        // Si no hay headers, intentamos limpiar lo que haya
+        finalKey = privateKey.trim().replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
       }
-
-      // Reemplazar escapes literales de \n por saltos de línea reales
-      sanitizedKey = sanitizedKey.replace(/\\n/g, '\n');
-
-      // Si por alguna razón la llave no tiene los headers PEM, no funcionará, 
-      // pero aquí asumimos que los tiene según el audit anterior.
       
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId: projectId,
           clientEmail: clientEmail,
-          privateKey: sanitizedKey,
+          privateKey: finalKey,
         }),
       });
       console.log('Firebase Admin initialized successfully.');
