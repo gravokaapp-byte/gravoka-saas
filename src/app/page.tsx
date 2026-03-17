@@ -29,7 +29,7 @@ interface ClientMap {
 }
 
 export default function Dashboard() {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
   const router = useRouter();
   const [activeChartFilter, setActiveChartFilter] = useState('Semana Actual');
 
@@ -39,6 +39,7 @@ export default function Dashboard() {
       router.push('/admin');
     }
   }, [profile, router]);
+  
   const [stats, setStats] = useState({ ventas: 0, volumen: 0, guias: 0 });
   const [recentGuias, setRecentGuias] = useState<Guia[]>([]);
   const [clientNames, setClientNames] = useState<ClientMap>({});
@@ -51,9 +52,8 @@ export default function Dashboard() {
     setIsMounted(true);
   }, []);
   
-  // Si está cargando el profile, mostrar spinner. 
-  // Pero si ya tenemos el profile, NO bloquear con isActuallyLoading si es superadmin (permitir que el router.push haga lo suyo)
-  const isActuallyLoading = (isLoading || !profile) && !profile?.rol;
+  // Loading is true only if we are still determining auth OR if we have a profile and are fetching data
+  const isActuallyLoading = loading || (!!profile && isLoading);
 
   useEffect(() => {
     // Fetch Empresa Data for subscription info
@@ -149,41 +149,6 @@ export default function Dashboard() {
     XLSX.writeFile(wb, `Ventas_Semanales_${now.toISOString().split('T')[0]}.xlsx`);
   };
 
-  const chartData = useMemo(() => {
-    const days = ['DOM', 'LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'];
-    const result = [];
-    const now = new Date();
-    
-    // Generar últimos 7 días terminando hoy
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      const dStr = d.toDateString();
-      
-      let totalDia = 0;
-      allGuias.forEach(g => {
-        const gDate = parseDate(g.creado_en);
-        if (gDate && gDate.toDateString() === dStr) {
-          totalDia += g.total_estimado || 0;
-        }
-      });
-
-      result.push({
-        day: days[d.getDay()],
-        total: totalDia,
-        date: d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })
-      });
-    }
-
-    const maxTotal = Math.max(...result.map(r => r.total), 1);
-    
-    return result.map(r => ({
-      ...r,
-      height: `${(r.total / maxTotal) * 100}%`,
-      color: r.total > 0 ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-800'
-    }));
-  }, [allGuias]);
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
   };
@@ -204,6 +169,41 @@ export default function Dashboard() {
     const now = new Date();
     return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   };
+
+  const chartData = useMemo(() => {
+    const daysArr = ['DOM', 'LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'];
+    const result = [];
+    const now = new Date();
+    
+    // Generar últimos 7 días terminando hoy
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dStr = d.toDateString();
+      
+      let totalDia = 0;
+      allGuias.forEach(g => {
+        const gDate = parseDate(g.creado_en);
+        if (gDate && gDate.toDateString() === dStr) {
+          totalDia += g.total_estimado || 0;
+        }
+      });
+
+      result.push({
+        day: daysArr[d.getDay()],
+        total: totalDia,
+        date: d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })
+      });
+    }
+
+    const maxTotal = Math.max(...result.map(r => r.total), 1);
+    
+    return result.map(r => ({
+      ...r,
+      height: `${(r.total / maxTotal) * 100}%`,
+      color: r.total > 0 ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-800'
+    }));
+  }, [allGuias]);
 
   if (!isMounted || isActuallyLoading) {
     return (
