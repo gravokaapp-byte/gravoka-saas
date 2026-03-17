@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useState, useEffect } from 'react';
 import { getNotifications, markNotificationAsRead, Notification } from '@/app/actions/notifications';
 
-export default function Header() {
+export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, user } = useAuth();
@@ -18,7 +18,6 @@ export default function Header() {
         setNotifications(data);
       };
       loadNotifications();
-      // Polling básico cada 1 min para demos
       const interval = setInterval(loadNotifications, 60000);
       return () => clearInterval(interval);
     }
@@ -31,44 +30,52 @@ export default function Header() {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
-  let title = 'Dashboard Principal';
-  if (pathname.includes('/admin')) title = 'SaaS Admin Hub';
-  else if (pathname.includes('/clientes')) title = 'Gestión de Clientes';
-  else if (pathname.includes('/guias')) title = 'Terminal de Despacho';
-  else if (pathname.includes('/reportes')) title = 'Reportes y Analítica';
-  else if (pathname.includes('/configuracion')) title = 'Configuración de Empresa';
+  let title = 'Dashboard';
+  if (pathname.includes('/admin')) title = 'SaaS Admin';
+  else if (pathname.includes('/clientes')) title = 'Clientes';
+  else if (pathname.includes('/guias')) title = 'Terminal Despacho';
+  else if (pathname.includes('/reportes')) title = 'Reportes';
+  else if (pathname.includes('/configuracion')) title = 'Configuración';
 
   return (
-    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between">
-      <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{title}</h2>
-      
+    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-30 px-4 md:px-8 flex items-center justify-between">
       <div className="flex items-center gap-4">
-        <div className="relative group">
+        <button 
+          onClick={onMenuClick}
+          className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        >
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+        <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate max-w-[150px] md:max-w-none">{title}</h2>
+      </div>
+      
+      <div className="flex items-center gap-2 md:gap-4">
+        <div className="relative group hidden sm:block">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within:text-primary transition-colors">search</span>
           <input 
             type="text" 
             placeholder="Buscar..." 
-            className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-64 transition-all"
+            className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-32 md:w-64 transition-all"
           />
         </div>
         
         <div className="relative">
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
-            className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center relative"
+            className="size-9 md:size-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center relative"
           >
             <span className="material-symbols-outlined text-[20px]">notifications</span>
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 size-4 bg-red-500 text-[10px] text-white font-bold rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center">
+              <span className="absolute top-1.5 right-1.5 size-4 bg-red-500 text-[10px] text-white font-bold rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center">
                 {unreadCount}
               </span>
             )}
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute right-0 mt-2 w-72 md:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                <span className="font-black text-xs uppercase tracking-widest text-slate-400">Notificaciones</span>
+                <span className="font-black text-[10px] uppercase tracking-widest text-slate-400">Notificaciones</span>
                 <button onClick={() => setNotifications([])} className="text-[10px] font-bold text-primary hover:underline">Limpiar todo</button>
               </div>
               <div className="max-h-96 overflow-y-auto">
@@ -88,7 +95,6 @@ export default function Header() {
                       <div className="flex flex-col gap-1 ml-2">
                         <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">{n.title}</span>
                         <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">{n.message}</p>
-                        <span className="text-[9px] text-slate-400 font-medium">Hace un momento</span>
                       </div>
                     </div>
                   ))
@@ -103,7 +109,7 @@ export default function Header() {
             if (profile?.rol === 'superadmin') router.push('/admin/configuracion');
             else router.push('/configuracion');
           }}
-          className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center"
+          className="size-9 md:size-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center"
         >
           <span className="material-symbols-outlined text-[20px]">settings</span>
         </button>

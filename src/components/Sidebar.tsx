@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean, setIsOpen?: (val: boolean) => void }) {
   const pathname = usePathname();
   const { profile, logout } = useAuth();
 
@@ -28,55 +28,77 @@ export default function Sidebar() {
   const links = profile?.rol === 'superadmin' ? superadminLinks : clientLinks;
 
   return (
-    <aside className="w-64 bg-slate-custom-900 dark:bg-black text-white flex flex-col h-full border-r border-slate-custom-800">
-      <div className="p-6 flex items-center gap-3">
-        <div className="size-10 rounded-xl bg-primary flex items-center justify-center">
-          <span className="material-symbols-outlined text-white text-2xl">mountain_flag</span>
-        </div>
-        <div>
-          <h1 className="font-bold text-xl tracking-tight">Gravoka</h1>
-          <p className="text-xs text-slate-400">Gestión de Áridos</p>
-        </div>
-      </div>
-      
-      <nav className="flex-1 px-4 space-y-1 mt-4">
-        {links.map((link) => {
-          const isActive = pathname === link.href || (pathname.startsWith(link.href) && link.href !== '/');
-          return (
-            <Link 
-              key={link.href} 
-              href={link.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                isActive 
-                  ? 'bg-primary text-white font-medium' 
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <span className="material-symbols-outlined">{link.icon}</span>
-              <span>{link.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+    <>
+      {/* Overlay para móviles */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsOpen?.(false)}
+        />
+      )}
 
-      <div className="p-4 border-t border-slate-custom-800">
-        <div className="flex items-center gap-3 px-2">
-          <div className="size-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
-            {profile?.nombre?.[0] || 'U'}
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium truncate">{profile?.nombre || 'Usuario'}</p>
-            <p className="text-xs text-slate-500 truncate capitalize">{profile?.rol || 'Operario'}</p>
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-72 lg:w-64 bg-slate-custom-900 dark:bg-black text-white flex flex-col h-full border-r border-slate-custom-800 transition-transform duration-300 transform
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:static lg:translate-x-0 lg:inset-0
+      `}>
+        <div className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="material-symbols-outlined text-white text-2xl">mountain_flag</span>
+            </div>
+            <div>
+              <h1 className="font-bold text-xl tracking-tight">Gravoka</h1>
+              <p className="text-xs text-slate-400">Gestión de Áridos</p>
+            </div>
           </div>
           <button 
-            onClick={logout}
-            className="material-symbols-outlined text-slate-500 cursor-pointer hover:text-red-400 transition-colors"
-            title="Cerrar Sesión"
+            onClick={() => setIsOpen?.(false)}
+            className="lg:hidden material-symbols-outlined text-slate-400 hover:text-white"
           >
-            logout
+            close
           </button>
         </div>
-      </div>
-    </aside>
+        
+        <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
+          {links.map((link) => {
+            const isActive = pathname === link.href || (pathname.startsWith(link.href) && link.href !== '/');
+            return (
+              <Link 
+                key={link.href} 
+                href={link.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  isActive 
+                    ? 'bg-primary text-white font-medium shadow-md shadow-primary/10 scale-[1.02]' 
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <span className="material-symbols-outlined">{link.icon}</span>
+                <span>{link.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-slate-custom-800">
+          <div className="flex items-center gap-3 px-2">
+            <div className="size-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold border border-slate-600">
+              {profile?.nombre?.[0] || 'U'}
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-medium truncate">{profile?.nombre || 'Usuario'}</p>
+              <p className="text-xs text-slate-500 truncate capitalize">{profile?.rol || 'Operario'}</p>
+            </div>
+            <button 
+              onClick={logout}
+              className="material-symbols-outlined text-slate-500 cursor-pointer hover:text-red-400 transition-colors"
+              title="Cerrar Sesión"
+            >
+              logout
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
