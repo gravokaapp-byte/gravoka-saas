@@ -50,7 +50,7 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
         </button>
-        <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate max-w-[150px] md:max-w-none ml-1 uppercase">{title}</h2>
+        <h2 className="text-sm md:text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate max-w-[200px] md:max-w-none ml-1 uppercase">{title}</h2>
       </div>
       
       <div className="flex items-center gap-2 md:gap-4">

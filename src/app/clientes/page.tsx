@@ -106,44 +106,44 @@ export default function ClientesPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-8">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[800px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900/40">
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">RUT</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Empresa</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Teléfono</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Estado</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">Acciones</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">RUT</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Empresa</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Teléfono</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Estado</th>
+                  <th className="px-4 md:px-6 py-4 text-right text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {isLoading ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">Cargando clientes de tu empresa...</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">Cargando clientes...</td></tr>
                 ) : clients.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">No tienes clientes registrados aún.</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">No hay clientes registrados.</td></tr>
                 ) : (
                   clients.map((client, i) => (
                     <tr key={client.id} className={`transition-colors ${selectedClient?.id === client.id ? 'bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-slate-700/30'}`}>
-                      <td className="px-6 py-5 text-sm font-medium text-slate-600 dark:text-slate-400">{client.rut}</td>
-                      <td className="px-6 py-5">
+                      <td className="px-4 md:px-6 py-5 text-sm font-medium text-slate-600 dark:text-slate-400 font-mono italic">{client.rut}</td>
+                      <td className="px-4 md:px-6 py-5">
                         <div className="flex items-center gap-3">
-                          <div className={`size-8 rounded flex items-center justify-center font-bold text-xs ${getColor(i)}`}>{getInitials(client.name)}</div>
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">{client.name}</span>
+                          <div className={`size-8 rounded flex items-center justify-center font-bold text-[10px] ${getColor(i)}`}>{getInitials(client.name)}</div>
+                          <span className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">{client.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-5 text-sm text-slate-600 dark:text-slate-400">{client.phone}</td>
-                      <td className="px-6 py-5">
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-green-100 text-green-700">{client.status}</span>
+                      <td className="px-4 md:px-6 py-5 text-sm text-slate-600 dark:text-slate-400 font-medium">{client.phone}</td>
+                      <td className="px-4 md:px-6 py-5">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-green-100 text-green-700">{client.status}</span>
                       </td>
-                      <td className="px-6 py-5 text-right">
+                      <td className="px-4 md:px-6 py-5 text-right">
                         <button 
                           onClick={() => setSelectedClient(client)}
-                          className="text-primary hover:text-primary/80 font-bold text-sm inline-flex items-center gap-1 group"
+                          className="text-primary hover:text-primary/80 font-black text-xs uppercase inline-flex items-center gap-1 group"
                         >
                           Ver Historial
-                          <span className="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-1">chevron_right</span>
+                          <span className="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-1">chevron_right</span>
                         </button>
                       </td>
                     </tr>

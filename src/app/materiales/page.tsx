@@ -105,31 +105,31 @@ export default function MaterialesPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-8">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[600px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900/40">
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Material</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Unidad</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Precio Unitario</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">Acciones</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Material</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Unidad</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Precio Unitario</th>
+                  <th className="px-4 md:px-6 py-4 text-right text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {isLoading ? (
-                  <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500">Cargando catálogo...</td></tr>
+                  <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500 italic">Cargando catálogo...</td></tr>
                 ) : materials.length === 0 ? (
-                  <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500">No hay materiales definidos. Crea el primero para emitir guías.</td></tr>
+                  <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500 italic">No hay materiales definidos.</td></tr>
                 ) : (
                   materials.map((m) => (
                     <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="px-6 py-5">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white">{m.nombre}</span>
+                      <td className="px-4 md:px-6 py-5">
+                        <span className="text-sm font-bold text-slate-900 dark:text-white uppercase">{m.nombre}</span>
                       </td>
-                      <td className="px-6 py-5 text-sm text-slate-600 dark:text-slate-400">{m.unidad}</td>
-                      <td className="px-6 py-5 text-sm font-mono text-primary font-bold">{formatCurrency(m.precio_unitario)}</td>
-                      <td className="px-6 py-5 text-right">
+                      <td className="px-4 md:px-6 py-5 text-sm text-slate-600 dark:text-slate-400">{m.unidad}</td>
+                      <td className="px-4 md:px-6 py-5 text-sm font-mono text-primary font-black">{formatCurrency(m.precio_unitario)}</td>
+                      <td className="px-4 md:px-6 py-5 text-right">
                         <button 
                           onClick={() => handleDeleteMaterial(m.id)}
                           className="text-red-500 hover:text-red-700 p-2"

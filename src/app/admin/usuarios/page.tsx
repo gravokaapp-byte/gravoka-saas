@@ -92,31 +92,31 @@ export default function UsuariosAdminPage() {
   if (loading || profile?.rol !== 'superadmin') return null;
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-end">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
-            <Users className="size-8 text-primary" />
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight flex items-center gap-3 italic">
+            <Users className="size-6 md:size-8 text-primary" />
             Gestión de Usuarios SaaS
           </h1>
-          <p className="text-slate-500">Visualiza y administra todos los accesos de tus clientes.</p>
+          <p className="text-sm text-slate-500">Visualiza y administra todos los accesos de tus clientes.</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button 
             onClick={() => setIsAddModalOpen(true)}
-            className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+            className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-[10px] md:text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             <Plus className="size-4" />
             Nuevo Usuario
           </button>
-          <div className="relative">
+          <div className="relative flex-1 md:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Buscar por nombre, email o empresa..." 
+              placeholder="Buscar..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-sm w-80"
+              className="pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-sm w-full md:w-80"
             />
           </div>
         </div>
@@ -189,61 +189,67 @@ export default function UsuariosAdminPage() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-            <tr>
-              <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Usuario</th>
-              <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Empresa</th>
-              <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Rol</th>
-              <th className="px-6 py-4 text-right text-[10px] font-black uppercase text-slate-400 tracking-wider">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filtered.map(user => (
-              <tr key={user.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/30 transition-colors">
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400">
-                      {user.nombre?.charAt(0) || user.email?.charAt(0) || '?'}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-slate-900 dark:text-white">{user.nombre || 'Sin Nombre'}</span>
-                      <span className="text-xs text-slate-400 font-medium">{user.email || 'Sin Email'}</span>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                    <Building2 className="size-4" />
-                    <span className="text-sm font-bold">{user.empresa_nombre}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-2">
-                    <Shield className={`size-4 ${user.rol === 'admin_tenant' ? 'text-primary' : 'text-slate-400'}`} />
-                    <span className={`text-[10px] font-black uppercase ${user.rol === 'admin_tenant' ? 'text-primary' : 'text-slate-500'}`}>
-                      {user.rol === 'admin_tenant' ? 'Admin Empresa' : 'Operario'}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-5 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button 
-                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-primary transition-colors"
-                      title="Enviar reset de contraseña"
-                    >
-                      <Mail className="size-4" />
-                    </button>
-                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                      <ChevronRight className="size-4" />
-                    </button>
-                  </div>
-                </td>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-[800px] text-left">
+            <thead className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+              <tr>
+                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Usuario</th>
+                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Empresa</th>
+                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Rol</th>
+                <th className="px-4 md:px-6 py-4 text-right text-[10px] font-black uppercase text-slate-400 tracking-wider">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {filtered.map(user => (
+                <tr key={user.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/30 transition-colors">
+                  <td className="px-4 md:px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 italic">
+                        {user.nombre?.charAt(0) || user.email?.charAt(0) || '?'}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-900 dark:text-white uppercase tracking-tight text-sm">
+                          {user.nombre || 'Sin Nombre'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium italic lowercase">
+                          {user.email || 'Sin Email'}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 md:px-6 py-5">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                      <Building2 className="size-4 opacity-40" />
+                      <span className="text-xs font-black uppercase tracking-tight">{user.empresa_nombre}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 md:px-6 py-5">
+                    <div className="flex items-center gap-2">
+                      <Shield className={`size-4 ${user.rol === 'admin_tenant' ? 'text-primary' : 'text-slate-400'}`} />
+                      <span className={`text-[10px] font-black uppercase ${user.rol === 'admin_tenant' ? 'text-primary' : 'text-slate-500'}`}>
+                        {user.rol === 'admin_tenant' ? 'Admin Empresa' : 'Operario'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 md:px-6 py-5 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-primary transition-colors"
+                        title="Enviar reset de contraseña"
+                      >
+                        <Mail className="size-4" />
+                      </button>
+                      <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                        <ChevronRight className="size-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

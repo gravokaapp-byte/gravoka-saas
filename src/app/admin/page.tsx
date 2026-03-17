@@ -40,6 +40,11 @@ export default function SuperAdminPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [saasStats, setSaasStats] = useState<SaaSStats | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -84,7 +89,7 @@ export default function SuperAdminPage() {
 
   const formatCurrency = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(n);
 
-  if (loading || profile?.rol !== 'superadmin') {
+  if (!isMounted || loading || isLoadingData || profile?.rol !== 'superadmin') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -125,7 +130,7 @@ export default function SuperAdminPage() {
       </div>
 
       {/* SaaS Business KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <MetricCard 
           title="MRR Estimado" 
           value={formatCurrency(saasStats?.mrrEstimado || 0)} 
@@ -137,24 +142,24 @@ export default function SuperAdminPage() {
           title="Empresas Activas" 
           value={saasStats?.empresasActivas.toString() || '0'} 
           icon="corporate_fare" 
-          secondary={`${saasStats?.totalEmpresas} totales registradas`}
+          secondary={`${saasStats?.totalEmpresas} totales`}
           color="bg-blue-500"
         />
         <MetricCard 
           title="Suscripciones Pro" 
           value={saasStats?.planes.Pro.toString() || '0'} 
           icon="verified" 
-          secondary="Plan más popular"
+          secondary="Plan popular"
           color="bg-primary"
         />
         <MetricCard 
-          title="Empresas en Riesgo" 
+          title="En Riesgo" 
           value={empresas.filter(e => {
             const days = calculateDaysRemaining(e.fecha_vencimiento);
             return days !== null && days < 7;
           }).length.toString()} 
           icon="warning" 
-          secondary="Por vencer esta semana"
+          secondary="Por vencer"
           color="bg-amber-500"
         />
       </div>
@@ -172,29 +177,29 @@ export default function SuperAdminPage() {
               </div>
             </div>
             
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full min-w-[800px] text-left">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-950/50">
-                    <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Cliente</th>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Plan</th>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Estado</th>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400">Vencimiento</th>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase text-slate-400 text-right">Acciones</th>
+                    <th className="px-4 md:px-8 py-4 text-[10px] font-black uppercase text-slate-400">Cliente</th>
+                    <th className="px-4 md:px-8 py-4 text-[10px] font-black uppercase text-slate-400">Plan</th>
+                    <th className="px-4 md:px-8 py-4 text-[10px] font-black uppercase text-slate-400">Estado</th>
+                    <th className="px-4 md:px-8 py-4 text-[10px] font-black uppercase text-slate-400">Vencimiento</th>
+                    <th className="px-4 md:px-8 py-4 text-[10px] font-black uppercase text-slate-400 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {isLoadingData ? (
-                    <tr><td colSpan={5} className="px-8 py-10 text-center text-slate-500 italic">Cargando datos maestros...</td></tr>
+                    <tr><td colSpan={5} className="px-8 py-10 text-center text-slate-500 italic">Cargando...</td></tr>
                   ) : empresas.map((empresa) => (
                     <tr key={empresa.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all">
-                      <td className="px-8 py-6">
+                      <td className="px-4 md:px-8 py-6">
                         <div className="flex flex-col">
-                          <span className="text-sm font-black text-slate-900 dark:text-white">{empresa.nombre}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{empresa.rut}</span>
+                          <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{empresa.nombre}</span>
+                          <span className="text-[10px] text-slate-400 font-mono italic">{empresa.rut}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-4 md:px-8 py-6">
                         <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase ${
                           empresa.plan_activo === 'Enterprise' ? 'bg-slate-900 text-white' : 
                           empresa.plan_activo === 'Pro' ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-600'
@@ -202,18 +207,18 @@ export default function SuperAdminPage() {
                           {empresa.plan_activo}
                         </span>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-4 md:px-8 py-6">
                         <div className="flex items-center gap-2">
-                          <div className={`size-2 rounded-full animate-pulse ${empresa.estado === 'activo' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                          <span className={`text-xs font-bold uppercase ${empresa.estado === 'activo' ? 'text-emerald-600' : 'text-red-600'}`}>
+                          <div className={`size-2 rounded-full ${empresa.estado === 'activo' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                          <span className={`text-[10px] font-black uppercase ${empresa.estado === 'activo' ? 'text-emerald-600' : 'text-red-600'}`}>
                             {empresa.estado === 'activo' ? 'Activa' : 'Inactiva'}
                           </span>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-4 md:px-8 py-6">
                         {empresa.fecha_vencimiento ? (
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                            <span className="text-[11px] md:text-sm font-bold text-slate-700 dark:text-slate-200">
                               {new Date(empresa.fecha_vencimiento.seconds * 1000).toLocaleDateString('es-CL')}
                             </span>
                             {(() => {
@@ -222,22 +227,22 @@ export default function SuperAdminPage() {
                               const color = days < 3 ? 'text-red-500' : days < 10 ? 'text-amber-500' : 'text-emerald-500';
                               return (
                                 <span className={`text-[10px] font-black uppercase tracking-tighter ${color}`}>
-                                  {days < 0 ? 'Vencido' : `${days} días restantes`}
+                                  {days < 0 ? 'Vencido' : `${days} días`}
                                 </span>
                               );
                             })()}
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400">Sin fecha</span>
+                          <span className="text-xs text-slate-400 italic">Sin fecha</span>
                         )}
                       </td>
-                      <td className="px-8 py-6 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <td className="px-4 md:px-8 py-6 text-right">
+                        <div className="flex items-center justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-primary transition-colors">
-                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
                           </button>
                           <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-500 transition-colors">
-                            <span className="material-symbols-outlined text-[20px]">block</span>
+                            <span className="material-symbols-outlined text-[18px]">block</span>
                           </button>
                         </div>
                       </td>
@@ -336,17 +341,17 @@ function AuditItem({ icon, text, time }: { icon: string, text: string, time: str
 
 function MetricCard({ title, value, icon, secondary, color }: { title: string, value: string, icon: string, secondary: string, color: string }) {
   return (
-    <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-6 group hover:border-primary/30 transition-all">
+    <div className="bg-white dark:bg-slate-900 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-4 md:gap-6 group hover:border-primary/30 transition-all">
       <div className="flex items-center justify-between">
-        <div className={`size-14 rounded-2xl ${color} flex items-center justify-center text-white shadow-lg`}>
-          <span className="material-symbols-outlined text-3xl font-light">{icon}</span>
+        <div className={`size-10 md:size-14 rounded-xl ${color} flex items-center justify-center text-white shadow-lg`}>
+          <span className="material-symbols-outlined text-xl md:text-3xl font-light">{icon}</span>
         </div>
         <div className="flex flex-col text-right">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</span>
-          <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mt-1">{value}</span>
+          <span className="text-xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tighter mt-1">{value}</span>
         </div>
       </div>
-      <div className="text-xs font-bold text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-4 mt-auto lowercase">
+      <div className="text-[10px] md:text-xs font-bold text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-3 md:pt-4 mt-auto lowercase">
         {secondary}
       </div>
     </div>

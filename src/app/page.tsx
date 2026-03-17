@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase/config';
+import * as XLSX from 'xlsx';
 import { collection, query, where, onSnapshot, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { 
   CreditCard, 
@@ -43,6 +44,12 @@ export default function Dashboard() {
   const [clientNames, setClientNames] = useState<ClientMap>({});
   const [empresaData, setEmpresaData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+  const [allGuias, setAllGuias] = useState<Guia[]>([]);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   // Si está cargando el profile, mostrar spinner. 
   // Pero si ya tenemos el profile, NO bloquear con isActuallyLoading si es superadmin (permitir que el router.push haga lo suyo)
@@ -94,6 +101,7 @@ export default function Dashboard() {
 
       // Keep only top 5 for the table
       setRecentGuias(guiasData.slice(0, 5));
+      setAllGuias(guiasData);
       setIsLoading(false);
     });
 
@@ -104,18 +112,77 @@ export default function Dashboard() {
   }, [profile?.empresa_id]);
 
   const handleExport = () => {
-    alert('Generando reporte semanal en PDF... Descarga iniciada.');
+    if (allGuias.length === 0) {
+      alert('No hay guías para exportar en el rango semanal.');
+      return;
+    }
+
+    const now = new Date();
+    const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    // Filtrar guías de la última semana
+    const weeklyGuias = allGuias.filter(g => {
+      const gDate = parseDate(g.creado_en);
+      return gDate && gDate >= last7Days;
+    });
+
+    if (weeklyGuias.length === 0) {
+      alert('No se encontraron guías en los últimos 7 días.');
+      return;
+    }
+
+    // Preparar datos para Excel
+    const data = weeklyGuias.map(g => ({
+      'ID Guía': g.id,
+      'Cliente': clientNames[g.cliente_id] || 'Cargando...',
+      'Material': g.material,
+      'Cantidad (m3)': g.cantidad,
+      'Total Estimado': g.total_estimado,
+      'Estado': g.estado,
+      'Fecha': parseDate(g.creado_en)?.toLocaleDateString('es-CL')
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ventas Semanales");
+    
+    XLSX.writeFile(wb, `Ventas_Semanales_${now.toISOString().split('T')[0]}.xlsx`);
   };
 
-  const chartData = [
-    { day: 'LUN', height: '60%', color: 'bg-primary' },
-    { day: 'MAR', height: '45%', color: 'bg-primary' },
-    { day: 'MIE', height: '85%', color: 'bg-primary' },
-    { day: 'JUE', height: '30%', color: 'bg-primary/40' },
-    { day: 'VIE', height: '70%', color: 'bg-primary' },
-    { day: 'SAB', height: '95%', color: 'bg-primary' },
-    { day: 'DOM', height: '15%', color: 'bg-slate-200 dark:bg-slate-800' },
-  ];
+  const chartData = useMemo(() => {
+    const days = ['DOM', 'LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'];
+    const result = [];
+    const now = new Date();
+    
+    // Generar últimos 7 días terminando hoy
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dStr = d.toDateString();
+      
+      let totalDia = 0;
+      allGuias.forEach(g => {
+        const gDate = parseDate(g.creado_en);
+        if (gDate && gDate.toDateString() === dStr) {
+          totalDia += g.total_estimado || 0;
+        }
+      });
+
+      result.push({
+        day: days[d.getDay()],
+        total: totalDia,
+        date: d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })
+      });
+    }
+
+    const maxTotal = Math.max(...result.map(r => r.total), 1);
+    
+    return result.map(r => ({
+      ...r,
+      height: `${(r.total / maxTotal) * 100}%`,
+      color: r.total > 0 ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-800'
+    }));
+  }, [allGuias]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
@@ -138,7 +205,7 @@ export default function Dashboard() {
     return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  if (isActuallyLoading) {
+  if (!isMounted || isActuallyLoading) {
     return (
       <div className="w-full flex justify-center py-20 min-h-screen items-center bg-slate-50">
         <div className="text-center space-y-4">
@@ -220,79 +287,79 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Subscription Banner */}
       {empresaData && (
-        <div className={`p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 border ${
+        <div className={`p-3 md:p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 border ${
           (daysRemaining() || 0) < 7 
             ? 'bg-amber-50 border-amber-200 text-amber-800' 
             : 'bg-primary/5 border-primary/10 text-primary-dark font-medium'
         }`}>
-          <div className="flex items-center gap-4">
-            <div className={`size-12 rounded-xl flex items-center justify-center ${
+          <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
+            <div className={`size-10 md:size-12 rounded-xl flex items-center justify-center ${
               (daysRemaining() || 0) < 7 ? 'bg-amber-100' : 'bg-primary/10'
             }`}>
-              {empresaData.plan_activo === 'Enterprise' ? <Zap className="size-6 text-primary" /> : <CreditCard className="size-6" />}
+              {empresaData.plan_activo === 'Enterprise' ? <Zap className="size-5 md:size-6 text-primary" /> : <CreditCard className="size-5 md:size-6" />}
             </div>
             <div>
-              <p className="text-sm font-black flex items-center gap-2">
+              <p className="text-xs md:text-sm font-black flex items-center gap-2">
                 Plan {empresaData.plan_activo || 'Pro'}
                 <span className="text-[10px] uppercase bg-white/50 px-2 py-0.5 rounded-full border border-current/20">Activo</span>
               </p>
-              <p className="text-xs opacity-70">
-                Tu suscripción vence el {parseDate(empresaData.fecha_vencimiento || empresaData.vencimiento)?.toLocaleDateString('es-CL') || 'N/A'}
+              <p className="text-[10px] md:text-xs opacity-70">
+                Vence el {parseDate(empresaData.fecha_vencimiento || empresaData.vencimiento)?.toLocaleDateString('es-CL') || 'N/A'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="text-right">
-              <p className="text-[10px] font-black uppercase opacity-60">Tiempo restante</p>
-              <p className="text-lg font-black tracking-tighter">
+          <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 w-full md:w-auto">
+            <div className="text-left md:text-right">
+              <p className="text-[10px] font-black uppercase opacity-60">Días restantes</p>
+              <p className="text-sm md:text-lg font-black tracking-tighter">
                 {daysRemaining() === null ? 'Pendiente' : `${daysRemaining()} días`}
               </p>
             </div>
-            <button className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
-              Renovar o Cambiar Plan
+            <button className="px-4 py-2 bg-primary text-white rounded-xl font-black text-[10px] md:text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+              Renovar
             </button>
           </div>
         </div>
       )}
       {/* KPI Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ventas Totales</span>
+            <span className="text-[10px] md:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ventas Totales</span>
             <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
               <span className="material-symbols-outlined text-xl">payments</span>
             </div>
           </div>
           <div className="flex items-end gap-2">
-            <h3 className="text-3xl font-bold dark:text-white">{formatCurrency(stats.ventas)}</h3>
+            <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white">{formatCurrency(stats.ventas)}</h3>
           </div>
-          <p className="text-xs text-slate-400 mt-2">Histórico acumulado</p>
+          <p className="text-[10px] text-slate-400 mt-2 italic">Histórico acumulado</p>
         </div>
         
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
+        <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">m3 Despachados</span>
+            <span className="text-[10px] md:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">m³ Despachados</span>
             <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
               <span className="material-symbols-outlined text-xl">view_in_ar</span>
             </div>
           </div>
           <div className="flex items-end gap-2">
-            <h3 className="text-3xl font-bold dark:text-white">{stats.volumen} m³</h3>
+            <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white">{stats.volumen} m³</h3>
           </div>
-          <p className="text-xs text-slate-400 mt-2">Volumen histórico</p>
+          <p className="text-[10px] text-slate-400 mt-2 italic">Volumen histórico</p>
         </div>
         
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
+        <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
           <div className="flex items-center justify-between mb-2">
-             <span className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Guías Emitidas</span>
+             <span className="text-[10px] md:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Guías Emitidas</span>
              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                 <span className="material-symbols-outlined text-xl">confirmation_number</span>
              </div>
           </div>
           <div className="flex items-end gap-2">
-             <h3 className="text-3xl font-bold dark:text-white">{stats.guias}</h3>
+             <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white">{stats.guias}</h3>
           </div>
-          <p className="text-xs text-slate-400 mt-2">Operaciones registradas</p>
+          <p className="text-[10px] text-slate-400 mt-2 italic">Operaciones registradas</p>
         </div>
       </div>
 
@@ -327,9 +394,17 @@ export default function Dashboard() {
           </div>
           <div className="flex items-end justify-between h-64 px-4">
             {chartData.map((data, index) => (
-              <div key={index} className="flex flex-col items-center gap-2 w-full max-w-[40px]">
-                <div className={`w-full rounded-t-lg transition-all duration-500 ${data.color}`} style={{ height: data.height }}></div>
+              <div key={index} className="flex flex-col items-center gap-2 w-full max-w-[40px] group relative" title={`${data.day}: ${formatCurrency(data.total)}`}>
+                <div className={`w-full rounded-t-lg transition-all duration-500 overflow-hidden relative ${data.color}`} style={{ height: data.height || '2px' }}>
+                  {data.total > 0 && (
+                    <div className="absolute top-0 left-0 w-full h-1 bg-white/20"></div>
+                  )}
+                </div>
                 <span className="text-[10px] font-semibold text-slate-400">{data.day}</span>
+                {/* Tooltip simple */}
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-xl border border-white/10">
+                  {formatCurrency(data.total)}
+                </div>
               </div>
             ))}
           </div>
@@ -359,34 +434,39 @@ export default function Dashboard() {
             Nueva Guía
           </Link>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-[700px] text-left">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50">
-                <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase">Documento</th>
-                <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase">Cliente</th>
-                <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase">Material</th>
-                <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase text-center">Cantidad</th>
-                <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase text-right">Total</th>
+                <th className="px-4 md:px-6 py-3 text-[10px] md:text-xs font-black text-slate-500 uppercase w-[80px] md:w-auto">Doc</th>
+                <th className="px-4 md:px-6 py-3 text-[10px] md:text-xs font-black text-slate-500 uppercase">Cliente</th>
+                <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-[10px] md:text-xs font-black text-slate-500 uppercase">Material</th>
+                <th className="px-4 md:px-6 py-3 text-[10px] md:text-xs font-black text-slate-500 uppercase text-center">Cant.</th>
+                <th className="px-4 md:px-6 py-3 text-[10px] md:text-xs font-black text-slate-500 uppercase text-right">Total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {recentGuias.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-sm">No hay guías registradas en el sistema.</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-sm italic">No hay guías registradas.</td>
                 </tr>
               ) : (
                 recentGuias.map((guia) => (
                   <tr key={guia.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-sm text-slate-600 dark:text-slate-300">
-                      ID: {guia.id.substring(0, 6).toUpperCase()}
+                    <td className="px-4 md:px-6 py-4 font-mono text-[10px] md:text-xs text-slate-400 italic">
+                      #{guia.id.substring(0, 4).toUpperCase()}
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium">
-                      {clientNames[guia.cliente_id] || 'Cliente Desconocido'}
+                    <td className="px-4 md:px-6 py-4">
+                      <div className="text-[10px] md:text-sm font-black text-slate-900 dark:text-white uppercase leading-tight truncate max-w-[120px] md:max-w-none">
+                        {clientNames[guia.cliente_id] || 'Cargando...'}
+                      </div>
+                      <div className="sm:hidden text-[9px] text-slate-400 font-medium truncate max-w-[120px]">
+                        {guia.material}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm">{guia.material}</td>
-                    <td className="px-6 py-4 text-sm text-center font-bold bg-primary/5">{guia.cantidad} m³</td>
-                    <td className="px-6 py-4 text-sm text-right font-medium">
+                    <td className="hidden sm:table-cell px-4 md:px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">{guia.material}</td>
+                    <td className="px-2 md:px-6 py-4 text-xs md:text-sm text-center font-black text-primary italic bg-primary/5">{guia.cantidad}m³</td>
+                    <td className="px-4 md:px-6 py-4 text-xs md:text-sm text-right font-black text-slate-900 dark:text-white whitespace-nowrap">
                       {formatCurrency(guia.total_estimado)}
                     </td>
                   </tr>

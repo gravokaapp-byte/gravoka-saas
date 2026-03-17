@@ -103,33 +103,33 @@ export default function CamionesPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-8">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[700px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900/40">
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Patente</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Modelo / Marca</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Conductor</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Capacidad</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">Acciones</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Patente</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Modelo / Marca</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Conductor</th>
+                  <th className="px-4 md:px-6 py-4 text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Capacidad</th>
+                  <th className="px-4 md:px-6 py-4 text-right text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {isLoading ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">Cargando flota...</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">Cargando flota...</td></tr>
                 ) : camiones.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">No hay camiones registrados.</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">No hay camiones registrados.</td></tr>
                 ) : (
                   camiones.map((c) => (
                     <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="px-6 py-5">
-                        <span className="bg-slate-100 dark:bg-slate-950 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 font-mono font-bold text-sm text-slate-900 dark:text-white uppercase">{c.patente}</span>
+                      <td className="px-4 md:px-6 py-5">
+                        <span className="bg-slate-100 dark:bg-slate-950 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 font-mono font-black text-xs text-slate-900 dark:text-white uppercase">{c.patente}</span>
                       </td>
-                      <td className="px-6 py-5 text-sm font-medium text-slate-700 dark:text-slate-300">{c.modelo}</td>
-                      <td className="px-6 py-5 text-sm text-slate-600 dark:text-slate-400 font-bold">{c.conductor_nombre}</td>
-                      <td className="px-6 py-5 text-sm text-center font-bold text-primary">{c.capacidad_m3} m³</td>
-                      <td className="px-6 py-5 text-right">
+                      <td className="px-4 md:px-6 py-5 text-sm font-bold text-slate-700 dark:text-slate-300 uppercase">{c.modelo}</td>
+                      <td className="px-4 md:px-6 py-5 text-sm text-slate-600 dark:text-slate-400 font-black uppercase tracking-tight">{c.conductor_nombre}</td>
+                      <td className="px-4 md:px-6 py-5 text-sm text-center font-black text-primary italic">{c.capacidad_m3} m³</td>
+                      <td className="px-4 md:px-6 py-5 text-right">
                         <button 
                           onClick={() => handleDeleteCamion(c.id)}
                           className="text-red-500 hover:text-red-700 p-2"

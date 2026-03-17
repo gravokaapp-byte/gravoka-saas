@@ -25,9 +25,9 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
       ) : (
         <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
           <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-          <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+          <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
             <Header onMenuClick={() => setIsSidebarOpen(true)} />
-            <div className="p-4 md:p-8">
+            <div className="flex-1 overflow-auto p-2 md:p-8">
               {children}
             </div>
           </main>

@@ -158,13 +158,13 @@ export default function GuiasPage() {
       <main className="flex flex-1 justify-center py-6 px-4 md:px-10 lg:px-40">
         <div className="flex flex-col max-w-[960px] flex-1 gap-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Nueva Guía de Despacho</h1>
-            <p className="text-primary font-semibold text-sm">Flujo de Alta Velocidad (&lt;15s)</p>
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Nueva Guía de Despacho</h1>
+            <p className="text-primary font-semibold text-xs md:text-sm">Flujo de Alta Velocidad (&lt;15s)</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Identificación */}
-            <div className="flex flex-col gap-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex flex-col gap-6 bg-white dark:bg-slate-900/50 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">person_search</span>
                 Identificación
@@ -200,7 +200,7 @@ export default function GuiasPage() {
             </div>
 
             {/* Carga y Volumen */}
-            <div className="flex flex-col gap-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex flex-col gap-6 bg-white dark:bg-slate-900/50 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">precision_manufacturing</span>
                 Carga y Volumen
@@ -227,7 +227,7 @@ export default function GuiasPage() {
                       value={quantity}
                       onChange={(e) => setQuantity(e.target.value)}
                       placeholder="0.0"
-                      className="h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-2xl font-bold text-primary focus:border-primary focus:ring-0" 
+                      className="h-14 md:h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-xl md:text-2xl font-bold text-primary focus:border-primary focus:ring-0" 
                     />
                   </label>
                   <label className="flex flex-col gap-2">
@@ -237,12 +237,12 @@ export default function GuiasPage() {
                       value={fleteCost}
                       onChange={(e) => setFleteCost(e.target.value)}
                       placeholder="0"
-                      className="h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-2xl font-bold text-blue-500 focus:border-blue-500 focus:ring-0" 
+                      className="h-14 md:h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-xl md:text-2xl font-bold text-blue-500 focus:border-blue-500 focus:ring-0" 
                     />
                   </label>
                   <div className="flex flex-col gap-2 col-span-2 md:col-span-1">
                     <span className="text-sm font-bold text-slate-400 uppercase">Total Bruto</span>
-                    <div className="h-16 w-full flex items-center px-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-2xl font-black text-slate-400">
+                    <div className="h-14 md:h-16 w-full flex items-center px-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-xl md:text-2xl font-black text-slate-400">
                       {formatCurrency(total)}
                     </div>
                   </div>
