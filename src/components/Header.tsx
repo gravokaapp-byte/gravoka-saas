@@ -43,12 +43,14 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
       <div className="flex items-center gap-3">
         <button 
           onClick={onMenuClick}
-          className="flex lg:hidden size-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700"
+          className="flex lg:hidden size-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 shadow-sm shrink-0"
           aria-label="Abrir menú"
         >
-          <span className="material-symbols-outlined text-2xl">menu</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
         </button>
-        <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate max-w-[150px] md:max-w-none ml-1">{title}</h2>
+        <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate max-w-[150px] md:max-w-none ml-1 uppercase">{title}</h2>
       </div>
       
       <div className="flex items-center gap-2 md:gap-4">
