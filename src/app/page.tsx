@@ -394,7 +394,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-end justify-between h-64 px-4">
             {chartData.map((data, index) => (
-              <div key={index} className="flex flex-col items-center gap-2 w-full max-w-[40px] group relative" title={`${data.day}: ${formatCurrency(data.total)}`}>
+              <div key={index} className="flex flex-col items-center gap-2 w-full max-w-[40px] h-full group relative" title={`${data.day}: ${formatCurrency(data.total)}`}>
                 <div className={`w-full rounded-t-lg transition-all duration-500 overflow-hidden relative ${data.color}`} style={{ height: data.height || '2px' }}>
                   {data.total > 0 && (
                     <div className="absolute top-0 left-0 w-full h-1 bg-white/20"></div>
