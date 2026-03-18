@@ -36,6 +36,7 @@ export default function GuiasPage() {
   const [selectedCamionId, setSelectedCamionId] = useState('');
   
   const [quantity, setQuantity] = useState('');
+  const [obra, setObra] = useState('Despacho Directo');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [config, setConfig] = useState<any>(null);
@@ -114,6 +115,7 @@ export default function GuiasPage() {
         material_id: selectedMaterialId,
         material_nombre: selectedMaterial?.nombre,
         cantidad: parseFloat(quantity),
+        obra: obra,
         metodo_pago: paymentMethod,
         total_estimado: total,
         flete_costo: parseFloat(fleteCost) || 0,
@@ -138,6 +140,7 @@ export default function GuiasPage() {
         setSelectedCamionId('');
         setQuantity('');
         setFleteCost('');
+        setObra('Despacho Directo');
         setPaymentMethod(null);
       }, 500);
 
@@ -195,6 +198,16 @@ export default function GuiasPage() {
                       <option key={c.id} value={c.id}>{c.patente} [{c.conductor_nombre}]</option>
                     ))}
                   </select>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">OBRA / DESTINO</span>
+                  <input
+                    type="text"
+                    value={obra}
+                    onChange={(e) => setObra(e.target.value)}
+                    placeholder="Ej: Obra Central / Bodega Sur"
+                    className="h-14 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-base font-semibold focus:border-primary focus:ring-0"
+                  />
                 </label>
               </div>
             </div>
@@ -332,53 +345,82 @@ export default function GuiasPage() {
         </div>
       )}
 
-      {/* Hidden Print Ticket */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-10 text-black">
-        <div className="max-w-md mx-auto border-2 border-black p-6 flex flex-col gap-4">
-          <div className="text-center border-b-2 border-dashed border-black pb-4">
-            <h1 className="text-2xl font-black uppercase text-primary">{config?.nombre_empresa || 'Gravoka SpA'}</h1>
-            <p className="text-xs font-bold">{config?.rut || 'RUT 77.XXX.XXX-X'}</p>
-            <p className="text-[10px]">{config?.direccion || 'Matriz de Operaciones'}</p>
-            <div className="mt-2 text-sm font-black border border-black p-1">GUÍA DE DESPACHO ELECTRÓNICA</div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-y-2 text-sm">
-            <span className="font-bold">FECHA:</span>
-            <span>{new Date().toLocaleString()}</span>
+      {/* Hidden Print Ticket - Dual Copy */}
+      <div className="hidden print:block fixed inset-0 bg-white z-[9999] text-black">
+        {[
+          { label: 'COPIA CLIENTE', key: 'client' },
+          { label: 'COPIA INTERNA', key: 'internal' }
+        ].map((copy, index) => (
+          <div key={copy.key} className={`h-[50vh] p-8 flex flex-col justify-between ${index === 0 ? 'border-b-2 border-dashed border-slate-300' : ''}`}>
             
-            <span className="font-bold">CLIENTE:</span>
-            <span className="uppercase">{clients.find(c => c.id === selectedClientId)?.name}</span>
+            <div className="flex justify-between items-start">
+              <div className="flex gap-4 items-center">
+                {config?.logo_url ? (
+                  <img src={config.logo_url} alt="Logo" className="max-h-16 w-auto" />
+                ) : (
+                  <div className="size-16 rounded border flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 font-bold uppercase">Logo</div>
+                )}
+                <div>
+                  <h1 className="text-xl font-black uppercase text-slate-900">{config?.nombre_empresa || 'Gravoka SpA'}</h1>
+                  <p className="text-xs font-bold">{config?.rut || 'RUT 77.XXX.XXX-X'}</p>
+                  <p className="text-[10px] text-slate-500">{config?.direccion || 'Matriz de Operaciones'}</p>
+                </div>
+              </div>
+              <div className="text-right border-2 border-red-500 p-3 rounded">
+                <h3 className="text-red-500 font-bold text-sm">GUÍA DE DESPACHO ELECTRÓNICA</h3>
+                <p className="text-lg font-mono font-black italic">N° {Math.floor(Math.random() * 10000).toString().padStart(6, '0')}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-8 my-6">
+              <div className="border p-3 rounded bg-slate-50">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Destinatario</h4>
+                <p className="font-black text-md uppercase">{clients.find(c => c.id === selectedClientId)?.name}</p>
+                <p className="text-[10px]"><b>OBRA:</b> {obra}</p>
+              </div>
+              <div className="border p-3 rounded bg-slate-50">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Transporte</h4>
+                <p className="text-[11px]"><b>PATENTE:</b> {camiones.find(c => c.id === selectedCamionId)?.patente}</p>
+                <p className="text-[11px]"><b>CONDUCTOR:</b> {camiones.find(c => c.id === selectedCamionId)?.conductor_nombre}</p>
+                <p className="text-[11px]"><b>FECHA/HORA:</b> {new Date().toLocaleString()}</p>
+              </div>
+            </div>
+
+            <table className="w-full border-collapse border border-slate-200">
+              <thead>
+                <tr className="bg-slate-100/50">
+                  <th className="border p-2 text-left text-[10px] font-black uppercase">Material</th>
+                  <th className="border p-2 text-center text-[10px] font-black uppercase">cantidad</th>
+                  <th className="border p-2 text-right text-[10px] font-black uppercase">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border p-3 text-sm font-bold uppercase">{selectedMaterial?.nombre}</td>
+                  <td className="border p-3 text-center text-lg font-black">{quantity} m³</td>
+                  <td className="border p-3 text-right text-md font-black">{formatCurrency(total)}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div className="flex justify-between items-end mt-4">
+              <div className="flex flex-col gap-1 text-[9px] opacity-70">
+                <span>PAGO: {paymentMethod?.toUpperCase()}</span>
+                <span>EMITIDO POR: {profile?.nombre || 'SISTEMA'}</span>
+                <span>GRAVOKA SaaS v4.5</span>
+              </div>
+              <div className="flex gap-10">
+                <div className="text-center w-40 border-t border-black pt-1">
+                  <p className="text-[9px] font-black uppercase">Recibe Conforme</p>
+                </div>
+                <div className="bg-slate-900 text-white px-3 py-1 text-[10px] font-black rounded-lg">
+                  {copy.label}
+                </div>
+              </div>
+            </div>
             
-            <span className="font-bold">PATENTE:</span>
-            <span className="uppercase">{camiones.find(c => c.id === selectedCamionId)?.patente}</span>
-            
-            <span className="font-bold">CONDUCTOR:</span>
-            <span className="uppercase">{camiones.find(c => c.id === selectedCamionId)?.conductor_nombre}</span>
           </div>
-
-          <div className="border-y-2 border-dashed border-black py-4 my-2">
-            <div className="flex justify-between font-black text-lg">
-              <span>{selectedMaterial?.nombre}</span>
-              <span>{quantity} m³</span>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-end">
-            <div className="flex flex-col gap-1 text-[10px] opacity-70">
-              <span>MÉTODO: {paymentMethod?.toUpperCase()}</span>
-              <span>SISTEMA: GRAVOKA SaaS v4.2</span>
-            </div>
-            <div className="text-right">
-              <p className="text-xs font-bold">TOTAL</p>
-              <p className="text-xl font-black tracking-tighter">{formatCurrency(total)}</p>
-            </div>
-          </div>
-
-          <div className="mt-6 pt-6 border-t border-slate-300 text-center text-[10px]">
-            <p>GRACIAS POR SU PREFERENCIA</p>
-            <p>Documento no válido como factura</p>
-          </div>
-        </div>
+        ))}
       </div>
 
       <style jsx global>{`
