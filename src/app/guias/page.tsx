@@ -123,8 +123,8 @@ export default function GuiasPage() {
     try {
       const selectedCamion = camiones.find(c => c.id === selectedCamionId);
 
-      // Get next sequential per-client guide number via transaction
-      const contadorRef = doc(db, 'contadores', `guia_cliente_${selectedClientId}`);
+      // Get next sequential per-empresa guide number via transaction
+      const contadorRef = doc(db, 'contadores', `guia_empresa_${profile.empresa_id}`);
       let nextNumero = 1;
 
       await runTransaction(db, async (transaction) => {
