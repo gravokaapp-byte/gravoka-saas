@@ -380,56 +380,51 @@ export default function Dashboard() {
                          <div className="grid grid-cols-3 gap-8">
                             <div className="col-span-2 bg-white p-8 rounded-[38px] border border-slate-100 shadow-sm h-80 flex flex-col relative overflow-hidden">
                                <p className="text-sm font-black text-slate-900 mb-2 uppercase tracking-tight">Ventas últimos 7 días</p>
-                               <div className="flex-1 relative mt-10">
-                                  {/* Grid Lines */}
-                                  <div className="absolute inset-0 flex flex-col justify-between py-2">
+                               <div className="flex-1 relative mt-12 bg-white">
+                                  {/* Precise Grid Lines (Dashed as in Screenshots) */}
+                                  <div className="absolute inset-0 flex flex-col justify-between py-1">
                                      {[...Array(5)].map((_, i) => (
-                                       <div key={i} className="w-full border-t border-slate-50"></div>
+                                       <div key={i} className="w-full border-t border-slate-100/60 border-dashed"></div>
                                      ))}
                                   </div>
                                   
-                                  {/* SVG Graph */}
+                                  {/* PRODUCTION REPLICA GRAPH (NO DOTS, CLEAN CURVE) */}
                                   <svg className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
                                      <defs>
-                                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                                           <stop offset="0%" stopColor="rgb(var(--primary-rgb))" stopOpacity="0.3" />
-                                           <stop offset="100%" stopColor="rgb(var(--primary-rgb))" stopOpacity="0" />
+                                        <linearGradient id="chartGradientProd" x1="0" y1="0" x2="0" y2="1">
+                                           <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                                           <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
                                         </linearGradient>
                                      </defs>
-                                     {/* Fill Area */}
+                                     
+                                     {/* Fill Area mimicking production */}
                                      <path 
-                                       d="M 0,95 C 15,92 25,85 35,80 C 45,75 55,85 65,70 C 75,55 85,30 100,5 L 100,100 L 0,100 Z" 
-                                       fill="url(#chartGradient)"
+                                       d="M 0,93 C 10,93 15,93 20,92 C 25,91 35,82 40,84 C 45,86 55,95 60,95 C 65,95 75,91 80,89 C 85,87 95,45 100,28 L 100,100 L 0,100 Z" 
+                                       fill="url(#chartGradientProd)"
                                      />
-                                     {/* Line */}
+                                     
+                                     {/* Simple Production Line - Emerald #10b981 */}
                                      <path 
-                                       d="M 0,95 C 15,92 25,85 35,80 C 45,75 55,85 65,70 C 75,55 85,30 100,5" 
+                                       d="M 0,93 C 10,93 15,93 20,92 C 25,91 35,82 40,84 C 45,86 55,95 60,95 C 65,95 75,91 80,89 C 85,87 95,45 100,28" 
                                        fill="none" 
-                                       stroke="rgb(var(--primary-rgb))" 
-                                       strokeWidth="3" 
+                                       stroke="#10b981" 
+                                       strokeWidth="2.5" 
                                        strokeLinecap="round"
-                                       className="drop-shadow-[0_4px_8px_rgba(var(--primary-rgb),0.5)]"
+                                       strokeLinejoin="round"
                                      />
-                                     {/* Dots */}
-                                     {[
-                                       { x: 35, y: 80 },
-                                       { x: 65, y: 70 },
-                                       { x: 100, y: 5 }
-                                     ].map((p, i) => (
-                                       <circle key={i} cx={p.x} cy={p.y} r="3" fill="white" stroke="rgb(var(--primary-rgb))" strokeWidth="2" />
-                                     ))}
                                   </svg>
 
-                                  {/* X-Axis Labels */}
-                                  <div className="absolute -bottom-6 inset-x-0 flex justify-between px-2">
-                                     {['03/13', '03/14', '03/15', '03/16', '03/17', '03/18'].map(d => (
-                                       <span key={d} className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">{d}</span>
+                                  {/* X-Axis Labels (Aligned with humps) */}
+                                  <div className="absolute -bottom-8 inset-x-0 flex justify-between px-1">
+                                     {[' ', '03/13', '03/14', '03/15', '03/16', '03/17', '03/18'].map((d, i) => (
+                                       <span key={i} className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter w-12 text-center">{d}</span>
                                      ))}
                                   </div>
                                </div>
                             </div>
                             
                             <div className="bg-white p-8 rounded-[38px] border border-slate-100 shadow-sm flex flex-col">
+
 
                                <div className="flex items-center gap-2 mb-8">
                                   <span className="material-symbols-outlined text-slate-400">local_shipping</span>
