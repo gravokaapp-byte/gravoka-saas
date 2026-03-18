@@ -280,54 +280,164 @@ export default function Dashboard() {
              </Link>
           </div>
 
-          {/* APP SHOWCASE MOCKUP */}
-          <div className="mt-32 w-full max-w-7xl relative opacity-0 animate-in fade-in slide-in-from-bottom-20 duration-1000 delay-700">
-             <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-blue-500/30 blur-2xl rounded-[60px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
-             <div className="relative bg-slate-900/40 border border-white/10 rounded-[48px] p-4 md:p-8 backdrop-blur-3xl shadow-[0_50px_100px_-20px_rgba(0,0,0,0.7)] overflow-hidden">
-                {/* Simulated UI Glass */}
-                <div className="aspect-[16/10] bg-slate-900 border border-white/5 rounded-[32px] overflow-hidden flex flex-col shadow-inner">
-                   <div className="h-10 border-b border-white/5 flex items-center px-6 gap-2 bg-slate-900/50">
-                      <div className="flex gap-1.5">
-                         <div className="size-3 rounded-full bg-red-500/20"></div>
-                         <div className="size-3 rounded-full bg-amber-500/20"></div>
-                         <div className="size-3 rounded-full bg-emerald-500/20"></div>
+          {/* APP SHOWCASE MOCKUP - VISTA REAL RECONSTRUIDA */}
+          <div className="mt-32 w-full max-w-[1240px] relative opacity-0 animate-in fade-in slide-in-from-bottom-20 duration-1000 delay-700">
+             <div className="absolute -inset-4 bg-gradient-to-r from-primary/40 to-blue-500/40 blur-3xl rounded-[64px] opacity-15"></div>
+             <div className="relative bg-white border border-white/20 rounded-[48px] p-1.5 backdrop-blur-3xl shadow-[0_80px_160px_-20px_rgba(0,0,0,0.8)] overflow-hidden">
+                
+                {/* Simulated UI Window */}
+                <div className="aspect-[16/9.5] bg-[#f8fafd] rounded-[42px] overflow-hidden flex shadow-2xl">
+                   
+                   {/* Realistic Sidebar */}
+                   <aside className="w-56 bg-[#0f172a] h-full flex flex-col p-6 border-r border-white/5">
+                      <div className="flex items-center gap-3 mb-10">
+                         <div className="size-8 bg-primary rounded-lg flex items-center justify-center">
+                            <span className="material-symbols-outlined text-white text-lg">rocket_launch</span>
+                         </div>
+                         <span className="text-white font-black text-sm tracking-tighter uppercase">Gravoka</span>
                       </div>
-                   </div>
-                   <div className="flex-1 p-10 flex flex-col gap-10">
-                      <div className="grid grid-cols-3 gap-6">
-                         {[1, 2, 3].map(i => (
-                           <div key={i} className="h-32 rounded-3xl bg-white/[0.02] border border-white/5 p-6 space-y-3">
-                              <div className="w-1/2 h-2.5 bg-white/10 rounded-full"></div>
-                              <div className="w-3/4 h-5 bg-primary/20 rounded-lg"></div>
+                      <div className="space-y-1.5 flex-1">
+                         {['Dashboard', 'Clientes', 'Materiales', 'Camiones', 'Guías'].map(item => (
+                           <div key={item} className="flex items-center gap-3 px-3 py-2 text-slate-400 text-[10px] font-bold uppercase tracking-wider hover:text-white transition-colors cursor-pointer">
+                              <div className="size-1.5 rounded-full bg-slate-700"></div> {item}
                            </div>
                          ))}
-                      </div>
-                      <div className="flex-1 rounded-[40px] border border-white/5 bg-gradient-to-br from-white/[0.01] to-transparent p-8 flex items-center justify-center relative overflow-hidden group/m">
-                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--tw-gradient-from)_0%,transparent_70%)] from-primary/10 opacity-0 group-hover/m:opacity-100 transition-opacity duration-700"></div>
-                         <div className="text-center relative">
-                            <span className="material-symbols-outlined text-8xl text-white/10 mb-6 drop-shadow-2xl">monitoring</span>
-                            <p className="text-2xl font-black text-slate-500 uppercase tracking-widest">Dashboard Operativo Real-Time</p>
-                            <p className="text-slate-600 font-bold mt-2">Visualiza cada m³ despachado al instante</p>
+                         <div className="flex items-center gap-3 px-3 py-2 bg-primary text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-lg shadow-primary/20">
+                            <div className="size-1.5 rounded-full bg-white"></div> Reportes
+                         </div>
+                         <div className="flex items-center gap-3 px-3 py-2 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                            <div className="size-1.5 rounded-full bg-slate-700"></div> Configuración
                          </div>
                       </div>
-                   </div>
+                      <div className="pt-6 border-t border-white/5">
+                         <div className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl">
+                            <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary text-xs font-black">AV</div>
+                            <div className="flex flex-col">
+                               <span className="text-[10px] font-black text-white uppercase leading-none">Admin Demo</span>
+                               <span className="text-[8px] text-slate-500 font-bold uppercase">Planeta X</span>
+                            </div>
+                         </div>
+                      </div>
+                   </aside>
+
+                   {/* Main Content Area */}
+                   <main className="flex-1 flex flex-col overflow-hidden bg-white">
+                      {/* Header UI */}
+                      <header className="h-14 bg-white border-b border-slate-100 flex items-center justify-between px-8">
+                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reportes</span>
+                         <div className="flex items-center gap-4">
+                            <div className="w-48 h-8 bg-slate-50 border border-slate-100 rounded-lg"></div>
+                            <div className="size-8 rounded-lg bg-slate-50 border border-slate-100"></div>
+                         </div>
+                      </header>
+
+                      {/* Dashboard Content */}
+                      <div className="flex-1 p-8 overflow-y-auto bg-[#f8fafd]">
+                         <div className="flex items-center justify-between mb-8">
+                            <div>
+                               <div className="flex items-center gap-2 mb-1">
+                                  <span className="size-2 bg-primary rounded-full"></span>
+                                  <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">BI & Analytics</span>
+                               </div>
+                               <h2 className="text-3xl font-black text-slate-900 tracking-tight">Control de Planta</h2>
+                               <p className="text-xs text-slate-500 font-medium">Visibilidad total de ingresos, flota y materiales.</p>
+                            </div>
+                            <div className="flex gap-2">
+                               <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100">
+                                  {['Hoy', 'Semana', 'Mes'].map(t => (
+                                    <button key={t} className="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase">{t}</button>
+                                  ))}
+                                  <button className="px-4 py-1.5 text-[10px] font-black text-white bg-primary rounded-lg shadow-md shadow-primary/20 uppercase">Histórico</button>
+                               </div>
+                               <button className="px-6 py-2.5 bg-slate-950 text-white rounded-xl font-black text-[10px] flex items-center gap-2 uppercase">
+                                  <span className="material-symbols-outlined text-sm">download</span> Exportar Excel
+                               </button>
+                            </div>
+                         </div>
+
+                         {/* KPI CARDS */}
+                         <div className="grid grid-cols-4 gap-6 mb-8">
+                            {[
+                               { label: 'Ventas Totales', value: '$10.032.500', icon: 'payments', diff: '+12.5% vs ayer' },
+                               { label: 'm3 Despachados', value: '874.0 m³', icon: 'view_in_ar', diff: 'En meta', isPrimary: true },
+                               { label: 'Utilidad Neta', value: '$9.624.500', icon: 'checklist_rtl', diff: 'Margen 84%' },
+                               { label: 'Operaciones', value: '25', icon: 'local_shipping', diff: 'Flujo constante' },
+                            ].map((k, i) => (
+                              <div key={i} className={`p-6 rounded-3xl border border-slate-100 shadow-sm bg-white`}>
+                                 <div className="flex items-center justify-between mb-4">
+                                    <div className="size-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                                       <span className="material-symbols-outlined text-xl">{k.icon}</span>
+                                    </div>
+                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{k.diff}</span>
+                                 </div>
+                                 <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{k.label}</p>
+                                 <p className="text-xl font-black text-slate-900 leading-none">{k.value}</p>
+                              </div>
+                            ))}
+                         </div>
+
+                         {/* Main Graph & Sidebar */}
+                         <div className="grid grid-cols-3 gap-8">
+                            <div className="col-span-2 bg-white p-8 rounded-[38px] border border-slate-100 shadow-sm h-80 flex flex-col relative overflow-hidden">
+                               <p className="text-sm font-black text-slate-900 mb-8 uppercase tracking-tight">Ventas últimos 7 días</p>
+                               <div className="flex-1 flex items-end gap-1 px-4 relative">
+                                  <div className="absolute inset-0 top-12 left-8 border-l border-b border-slate-100"></div>
+                                  {[10, 15, 8, 25, 12, 45, 100].map((h, i) => (
+                                    <div key={i} className="flex-1 relative group">
+                                       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 bg-gradient-to-t from-primary/5 via-primary/40 to-primary rounded-t-lg transition-all duration-700" style={{ height: `${h}%` }}>
+                                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[8px] font-black text-primary opacity-0 group-hover:opacity-100 transition-opacity">03/1{i+1}</div>
+                                       </div>
+                                       <div className="absolute top-[105%] left-1/2 -translate-x-1/2 text-[8px] font-bold text-slate-300">03/1{i}</div>
+                                    </div>
+                                  ))}
+                               </div>
+                            </div>
+                            
+                            <div className="bg-white p-8 rounded-[38px] border border-slate-100 shadow-sm flex flex-col">
+                               <div className="flex items-center gap-2 mb-8">
+                                  <span className="material-symbols-outlined text-slate-400">local_shipping</span>
+                                  <p className="text-sm font-black text-slate-900 uppercase tracking-tight">Top Flota (Vueltas)</p>
+                               </div>
+                               <div className="space-y-6">
+                                  {[
+                                    { p: 'PJ-88-22', v: 9, max: 10 },
+                                    { p: 'KLYU80', v: 7, max: 10 },
+                                    { p: 'PJ-99-33', v: 6, max: 10 },
+                                    { p: 'V-04-A', v: 3, max: 10 }
+                                  ].map((l, i) => (
+                                    <div key={i} className="space-y-2">
+                                       <div className="flex justify-between items-end">
+                                          <span className="text-[10px] font-black text-slate-600 uppercase">{l.p}</span>
+                                          <span className="text-[10px] font-black text-primary italic">{l.v} Vueltas</span>
+                                       </div>
+                                       <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+                                          <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${(l.v / l.max) * 100}%` }}></div>
+                                       </div>
+                                    </div>
+                                  ))}
+                               </div>
+                            </div>
+                         </div>
+                      </div>
+                   </main>
                 </div>
              </div>
              
              {/* Floating Elements */}
-             <div className="absolute -top-10 -right-10 px-8 py-5 bg-slate-900/80 border border-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl hidden lg:block animate-bounce duration-[3000ms]">
+             <div className="absolute -top-10 -right-10 px-8 py-5 bg-slate-900/90 border border-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl hidden lg:block animate-bounce duration-[3000ms]">
                 <div className="flex items-center gap-4">
-                   <div className="size-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
+                   <div className="size-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
                       <span className="material-symbols-outlined font-black">check_circle</span>
                    </div>
                    <div>
-                      <p className="text-xs font-black uppercase text-slate-400 mb-0.5">Guía N° 004290</p>
-                      <p className="text-sm font-bold text-white">Emitida con éxito</p>
+                      <p className="text-[9px] font-black uppercase text-slate-500 mb-0.5 tracking-widest">Guía N° 004290</p>
+                      <p className="text-sm font-bold text-white uppercase">EXITOSA</p>
                    </div>
                 </div>
              </div>
           </div>
         </section>
+
 
         {/* FEATURES GRID */}
         <section id="features" className="py-40 px-6 max-w-7xl mx-auto">
