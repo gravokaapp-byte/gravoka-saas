@@ -152,8 +152,10 @@ export default function GuiasPage() {
       // Trigger Print
       setTimeout(() => {
         window.print();
-        
-        // Reset form after print dialog
+      }, 1000);
+
+      // Reset form (delayed to allow browser to capture state for print)
+      setTimeout(() => {
         setSelectedClientId('');
         setSelectedMaterialId('');
         setSelectedCamionId('');
@@ -162,7 +164,7 @@ export default function GuiasPage() {
         setObra('Despacho Directo');
         setPaymentMethod(null);
         setGuiaNumero(null);
-      }, 500);
+      }, 3000);
 
     } catch (error) {
       console.error("Error al emitir guía", error);
@@ -366,7 +368,7 @@ export default function GuiasPage() {
       )}
 
       {/* Hidden Print Ticket - Dual Copy */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[9999] text-black">
+      <div className="print-ticket-container">
         {[
           { label: 'COPIA CLIENTE', key: 'client' },
           { label: 'COPIA INTERNA', key: 'internal' }
@@ -420,16 +422,6 @@ export default function GuiasPage() {
                   <td className="border p-3 text-center text-lg font-black">{quantity} m³</td>
                   <td className="border p-3 text-right text-md font-black">{formatCurrency(total)}</td>
                 </tr>
-                {parseFloat(fleteCost) > 0 && (
-                  <tr>
-                    <td colSpan={2} className="border p-2 text-right text-[10px] font-black uppercase bg-slate-50">Flete / Transporte</td>
-                    <td className="border p-2 text-right text-sm font-bold">{formatCurrency(parseFloat(fleteCost))}</td>
-                  </tr>
-                )}
-                <tr>
-                  <td colSpan={2} className="border p-2 text-right text-[10px] font-black uppercase bg-slate-100">Total Final</td>
-                  <td className="border p-2 text-right text-lg font-black bg-slate-100">{formatCurrency(total + (parseFloat(fleteCost) || 0))}</td>
-                </tr>
               </tbody>
             </table>
 
@@ -461,6 +453,9 @@ export default function GuiasPage() {
       </div>
 
       <style jsx global>{`
+        .print-ticket-container {
+          display: none;
+        }
         @media print {
           @page {
             margin: 0;
@@ -474,24 +469,24 @@ export default function GuiasPage() {
           header, footer, nav, aside {
             display: none !important;
           }
-          body * {
-            visibility: hidden;
+          body > :not(.print-ticket-container) {
+            display: none !important;
           }
-          .print\:block, .print\:block * {
-            visibility: visible;
-          }
-          .print\:block {
-            position: static !important;
+          .print-ticket-container {
             display: block !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: white !important;
+            color: black !important;
+            z-index: 99999;
           }
           .print-copy {
             width: 100%;
             height: 100vh;
             padding: 1.5cm;
-            display: flex;
+            display: flex !important;
             flex-direction: column;
             justify-content: space-between;
             page-break-after: always !important;
@@ -499,6 +494,10 @@ export default function GuiasPage() {
             box-sizing: border-box;
             background: white !important;
             color: black !important;
+            visibility: visible !important;
+          }
+          .print-copy * {
+            visibility: visible !important;
           }
           .print-copy:last-child {
             page-break-after: avoid !important;

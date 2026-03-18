@@ -544,16 +544,6 @@ function ReprintModal({ guia, config, profile, onClose }: { guia: GuiaData; conf
                   <td className="border p-3 text-center text-lg font-black">{guia.cantidad} m³</td>
                   <td className="border p-3 text-right text-md font-black">{formatCurrency(guia.total_estimado)}</td>
                 </tr>
-                {(guia.flete_costo || 0) > 0 && (
-                  <tr>
-                    <td colSpan={2} className="border p-2 text-right text-[10px] font-black uppercase bg-slate-50">Flete / Transporte</td>
-                    <td className="border p-2 text-right text-sm font-bold">{formatCurrency(guia.flete_costo || 0)}</td>
-                  </tr>
-                )}
-                <tr>
-                  <td colSpan={2} className="border p-2 text-right text-[10px] font-black uppercase bg-slate-100">Total Final</td>
-                  <td className="border p-2 text-right text-lg font-black bg-slate-100">{formatCurrency(guia.total_estimado + (guia.flete_costo || 0))}</td>
-                </tr>
               </tbody>
             </table>
 
@@ -597,17 +587,24 @@ function ReprintModal({ guia, config, profile, onClose }: { guia: GuiaData; conf
           header, footer, nav, aside, .no-print {
             display: none !important;
           }
-          body * {
-            visibility: hidden;
+          body > :not(.print:block) {
+            display: none !important;
           }
-          .reprint-copy, .reprint-copy * {
-            visibility: visible;
+          .print:block {
+            display: block !important;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: white !important;
+            color: black !important;
+            z-index: 99999;
           }
           .reprint-copy {
             width: 100%;
             height: 100vh;
             padding: 1.5cm;
-            display: flex;
+            display: flex !important;
             flex-direction: column;
             justify-content: space-between;
             page-break-after: always !important;
@@ -615,7 +612,10 @@ function ReprintModal({ guia, config, profile, onClose }: { guia: GuiaData; conf
             box-sizing: border-box;
             background: white !important;
             color: black !important;
-            position: relative;
+            visibility: visible !important;
+          }
+          .reprint-copy * {
+            visibility: visible !important;
           }
           .reprint-copy:last-child {
             page-break-after: avoid !important;
