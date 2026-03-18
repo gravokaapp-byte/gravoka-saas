@@ -179,7 +179,7 @@ export default function GuiasPage() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="flex flex-col h-full overflow-y-auto no-print">
       <main className="flex flex-1 justify-center py-6 px-4 md:px-10 lg:px-40">
         <div className="flex flex-col max-w-[960px] flex-1 gap-6">
           <div className="flex flex-col gap-1">
@@ -368,7 +368,7 @@ export default function GuiasPage() {
       )}
 
       {/* Hidden Print Ticket - Dual Copy */}
-      <div className="print-ticket-container">
+      <div className="print-ticket-container" key={guiaNumero ? `print-${guiaNumero}` : 'print-empty'}>
         {[
           { label: 'COPIA CLIENTE', key: 'client' },
           { label: 'COPIA INTERNA', key: 'internal' }
@@ -461,29 +461,28 @@ export default function GuiasPage() {
             margin: 0;
             size: auto;
           }
+          .no-print {
+            display: none !important;
+          }
           body {
             margin: 0;
             padding: 0;
             background: white !important;
           }
-          header, footer, nav, aside {
-            display: none !important;
-          }
-          body > :not(.print-ticket-container) {
-            display: none !important;
-          }
           .print-ticket-container {
             display: block !important;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 999999 !important;
             background: white !important;
             color: black !important;
-            z-index: 99999;
+            overflow: visible !important;
           }
           .print-copy {
-            width: 100%;
+            width: 100vw;
             height: 100vh;
             padding: 1.5cm;
             display: flex !important;
@@ -494,10 +493,6 @@ export default function GuiasPage() {
             box-sizing: border-box;
             background: white !important;
             color: black !important;
-            visibility: visible !important;
-          }
-          .print-copy * {
-            visibility: visible !important;
           }
           .print-copy:last-child {
             page-break-after: avoid !important;
