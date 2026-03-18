@@ -592,13 +592,10 @@ function ReprintModal({ guia, config, profile, onClose }: { guia: GuiaData; conf
           }
           .print:block {
             display: block !important;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+            position: static !important;
+            width: 100% !important;
             background: white !important;
             color: black !important;
-            z-index: 99999;
           }
           .reprint-copy {
             width: 100%;

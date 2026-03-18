@@ -481,12 +481,9 @@ export default function GuiasPage() {
           }
           .print-ticket-container {
             display: block !important;
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 9999999 !important;
+            position: static !important;
+            width: 100% !important;
+            height: auto !important;
             background: white !important;
             color: black !important;
             overflow: visible !important;
