@@ -22,7 +22,9 @@ import {
   Truck,
   Users,
   Package,
-  MapPin
+  MapPin,
+  Printer,
+  X
 } from 'lucide-react';
 
 export default function ReportesPage() {
@@ -40,6 +42,7 @@ export default function ReportesPage() {
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [clientFilter, setClientFilter] = useState('Todos');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [reprintGuia, setReprintGuia] = useState<GuiaData | null>(null);
 
   useEffect(() => {
     if (!profile?.empresa_id) return;
@@ -348,7 +351,9 @@ export default function ReportesPage() {
                   <tr key={g.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 group transition-all">
                     <td className="px-4 md:px-6 py-5">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-mono font-black text-slate-400 mb-1">{g.id.slice(-6).toUpperCase()}</span>
+                        <span className="text-[11px] font-mono font-black text-primary mb-1">
+                          {g.numero_guia ? `N° ${g.numero_guia.toString().padStart(6, '0')}` : g.id.slice(-6).toUpperCase()}
+                        </span>
                         <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
                           {g.creado_en?.toDate().toLocaleDateString('es-CL')}
                         </span>
@@ -382,7 +387,15 @@ export default function ReportesPage() {
                       </div>
                     </td>
                     <td className="px-4 md:px-6 py-5 text-right">
-                      {editingId === g.id ? (
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setReprintGuia(g)}
+                          title="Reimprimir guía"
+                          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary hover:bg-primary/10 transition-all"
+                        >
+                          <Printer className="size-4" />
+                        </button>
+                        {editingId === g.id ? (
                         <select 
                           autoFocus
                           onBlur={() => setEditingId(null)}
@@ -405,6 +418,7 @@ export default function ReportesPage() {
                           <ChevronDown className="size-3 ml-1" />
                         </button>
                       )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -413,6 +427,11 @@ export default function ReportesPage() {
           </div>
         </div>
       </main>
+
+      {/* Reprint Modal */}
+      {reprintGuia && (
+        <ReprintModal guia={reprintGuia} onClose={() => setReprintGuia(null)} />
+      )}
     </div>
   );
 }
@@ -433,3 +452,136 @@ function StatCard({ title, value, icon, trend }: { title: string, value: string,
     </div>
   );
 }
+
+function ReprintModal({ guia, onClose }: { guia: GuiaData; onClose: () => void }) {
+  const numStr = guia.numero_guia ? guia.numero_guia.toString().padStart(6, '0') : guia.id.slice(-6).toUpperCase();
+  const copies = [
+    { label: 'COPIA CLIENTE', key: 'client' },
+    { label: 'COPIA INTERNA', key: 'internal' },
+  ];
+
+  return (
+    <>
+      {/* Backdrop (hidden on print) */}
+      <div className="fixed inset-0 z-[9998] bg-black/60 flex items-center justify-center no-print">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full text-center">
+          <h2 className="text-xl font-black mb-1">Reimprimir Guía</h2>
+          <p className="text-slate-500 text-sm mb-1">Guía <span className="font-mono font-black text-primary">N° {numStr}</span></p>
+          <p className="text-slate-500 text-sm mb-6">{guia.cliente_nombre} — {guia.material_nombre}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={onClose}
+              className="px-6 py-3 rounded-xl border-2 border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="px-6 py-3 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all flex items-center gap-2"
+            >
+              <Printer className="size-4" /> Imprimir
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Hidden Print Content */}
+      <div className="hidden print:block fixed inset-0 bg-white z-[9999] text-black">
+        {copies.map((copy) => (
+          <div key={copy.key} className="reprint-copy">
+            <div className="flex justify-between items-start">
+              <div className="flex gap-4 items-center">
+                <div className="size-16 rounded border flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 font-bold uppercase">Logo</div>
+                <div>
+                  <h1 className="text-xl font-black uppercase text-slate-900">Gravoka SpA</h1>
+                  <p className="text-[10px] text-slate-500">Guía de Despacho</p>
+                </div>
+              </div>
+              <div className="text-right border-2 border-red-500 p-3 rounded">
+                <h3 className="text-red-500 font-bold text-sm">GUÍA DE DESPACHO ELECTRÓNICA</h3>
+                <p className="text-lg font-mono font-black italic">N° {numStr}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-8 my-6">
+              <div className="border p-3 rounded bg-slate-50">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Destinatario</h4>
+                <p className="font-black text-md uppercase">{guia.cliente_nombre}</p>
+                <p className="text-[10px]"><b>OBRA:</b> {guia.obra || 'Despacho Directo'}</p>
+              </div>
+              <div className="border p-3 rounded bg-slate-50">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Transporte</h4>
+                <p className="text-[11px]"><b>PATENTE:</b> {guia.camion_patente}</p>
+                <p className="text-[11px]"><b>CONDUCTOR:</b> {guia.conductor_nombre}</p>
+                <p className="text-[11px]"><b>FECHA/HORA:</b> {guia.creado_en?.toDate().toLocaleString()}</p>
+              </div>
+            </div>
+
+            <table className="w-full border-collapse border border-slate-200">
+              <thead>
+                <tr className="bg-slate-100/50">
+                  <th className="border p-2 text-left text-[10px] font-black uppercase">Material</th>
+                  <th className="border p-2 text-center text-[10px] font-black uppercase">Cantidad</th>
+                  <th className="border p-2 text-right text-[10px] font-black uppercase">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border p-3 text-sm font-bold uppercase">{guia.material_nombre}</td>
+                  <td className="border p-3 text-center text-lg font-black">{guia.cantidad} m³</td>
+                  <td className="border p-3 text-right text-md font-black">
+                    {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(guia.total_estimado)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div className="flex justify-between items-end mt-4">
+              <div className="flex flex-col gap-1 text-[9px] opacity-70">
+                <span>PAGO: {guia.metodo_pago?.toUpperCase()}</span>
+                <span>GRAVOKA SaaS v4.5</span>
+              </div>
+              <div className="flex gap-10 items-end">
+                {copy.key === 'internal' && (
+                  <div className="text-center w-40 border-t border-black pt-1">
+                    <p className="text-[9px] font-black uppercase">Recibe Conforme</p>
+                  </div>
+                )}
+                {copy.key === 'internal' && (
+                  <div className="text-center w-40 border-t border-black pt-1">
+                    <p className="text-[9px] font-black uppercase">Entrega Conforme</p>
+                  </div>
+                )}
+                <div className="bg-slate-900 text-white px-3 py-1 text-[10px] font-black rounded-lg">
+                  {copy.label}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <style jsx global>{`
+        @media print {
+          .no-print { display: none !important; }
+          .reprint-copy {
+            width: 100%;
+            height: 100vh;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            page-break-after: always;
+            break-after: page;
+            box-sizing: border-box;
+          }
+          .reprint-copy:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+        }
+      `}</style>
+    </>
+  );
+}
+

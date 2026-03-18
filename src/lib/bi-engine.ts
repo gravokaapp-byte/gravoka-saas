@@ -5,16 +5,21 @@ export interface GuiaData {
   cliente_id: string;
   cliente_nombre: string;
   material_nombre: string;
+  material_id?: string;
   cantidad: number;
   total_estimado: number;
   camion_patente: string;
+  camion_id?: string;
   conductor_nombre: string;
   creado_en: any;
   estado: string;
   flete_costo?: number;
   metodo_pago?: string;
   destino?: string;
+  numero_guia?: number;
+  obra?: string;
 }
+
 
 export const processBIStats = (guias: GuiaData[]) => {
   const filteredGuias = guias.filter(g => g.estado !== 'Anulada');

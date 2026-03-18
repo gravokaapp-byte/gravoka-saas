@@ -109,8 +109,8 @@ export default function GuiasPage() {
     try {
       const selectedCamion = camiones.find(c => c.id === selectedCamionId);
 
-      // Get next sequential guide number for this company via transaction
-      const contadorRef = doc(db, 'contadores', profile.empresa_id);
+      // Get next sequential GLOBAL guide number via transaction
+      const contadorRef = doc(db, 'contadores', 'global');
       let nextNumero = 1;
 
       await runTransaction(db, async (transaction) => {
@@ -371,7 +371,7 @@ export default function GuiasPage() {
           { label: 'COPIA CLIENTE', key: 'client' },
           { label: 'COPIA INTERNA', key: 'internal' }
         ].map((copy, index) => (
-          <div key={copy.key} className="h-screen p-8 flex flex-col justify-between print-page-break">
+          <div key={copy.key} className="print-copy">
             
             <div className="flex justify-between items-start">
               <div className="flex gap-4 items-center">
@@ -429,10 +429,17 @@ export default function GuiasPage() {
                 <span>EMITIDO POR: {profile?.nombre || 'SISTEMA'}</span>
                 <span>GRAVOKA SaaS v4.5</span>
               </div>
-              <div className="flex gap-10">
-                <div className="text-center w-40 border-t border-black pt-1">
-                  <p className="text-[9px] font-black uppercase">Recibe Conforme</p>
-                </div>
+              <div className="flex gap-10 items-end">
+                {copy.key === 'internal' && (
+                  <div className="text-center w-40 border-t border-black pt-1">
+                    <p className="text-[9px] font-black uppercase">Recibe Conforme</p>
+                  </div>
+                )}
+                {copy.key === 'internal' && (
+                  <div className="text-center w-40 border-t border-black pt-1">
+                    <p className="text-[9px] font-black uppercase">Entrega Conforme</p>
+                  </div>
+                )}
                 <div className="bg-slate-900 text-white px-3 py-1 text-[10px] font-black rounded-lg">
                   {copy.label}
                 </div>
@@ -457,9 +464,20 @@ export default function GuiasPage() {
             top: 0;
             width: 100%;
           }
-          .print-page-break {
+          .print-copy {
+            width: 100%;
+            height: 100vh;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
             page-break-after: always;
             break-after: page;
+            box-sizing: border-box;
+          }
+          .print-copy:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
           }
         }
       `}</style>
