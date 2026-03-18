@@ -2,6 +2,7 @@
 
 @theme inline {
   --color-primary: #10b981;
+  --color-primary-dark: #059669;
   --color-background-light: #f8fafd;
   --color-background-dark: #0f172a;
   
@@ -12,6 +13,8 @@
   --color-slate-custom-900: #0f172a;
 
   --font-display: "Public Sans", "sans-serif";
+  
+  --primary-rgb: 16, 185, 129;
 }
 
 @layer base {
@@ -24,5 +27,66 @@
   .dark body {
     background-color: var(--color-slate-custom-900);
     color: #f1f5f9;
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation-duration: 1000ms;
+    animation-fill-mode: both;
+  }
+  
+  .fade-in {
+    animation-name: fadeIn;
+  }
+  
+  .zoom-in-95 {
+    animation-name: zoomIn95;
+  }
+  
+  .slide-in-from-bottom-4 {
+    animation-name: slideInBottom4;
+  }
+  
+  .slide-in-from-bottom-8 {
+    animation-name: slideInBottom8;
+  }
+  
+  .slide-in-from-bottom-10 {
+    animation-name: slideInBottom10;
+  }
+  
+  .slide-in-from-bottom-20 {
+    animation-name: slideInBottom20;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes zoomIn95 {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes slideInBottom4 {
+    from { transform: translateY(1rem); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes slideInBottom8 {
+    from { transform: translateY(2rem); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes slideInBottom10 {
+    from { transform: translateY(2.5rem); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes slideInBottom20 {
+    from { transform: translateY(5rem); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 }
