@@ -379,21 +379,58 @@ export default function Dashboard() {
                          {/* Main Graph & Sidebar */}
                          <div className="grid grid-cols-3 gap-8">
                             <div className="col-span-2 bg-white p-8 rounded-[38px] border border-slate-100 shadow-sm h-80 flex flex-col relative overflow-hidden">
-                               <p className="text-sm font-black text-slate-900 mb-8 uppercase tracking-tight">Ventas últimos 7 días</p>
-                               <div className="flex-1 flex items-end gap-1 px-4 relative">
-                                  <div className="absolute inset-0 top-12 left-8 border-l border-b border-slate-100"></div>
-                                  {[10, 15, 8, 25, 12, 45, 100].map((h, i) => (
-                                    <div key={i} className="flex-1 relative group">
-                                       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 bg-gradient-to-t from-primary/5 via-primary/40 to-primary rounded-t-lg transition-all duration-700" style={{ height: `${h}%` }}>
-                                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[8px] font-black text-primary opacity-0 group-hover:opacity-100 transition-opacity">03/1{i+1}</div>
-                                       </div>
-                                       <div className="absolute top-[105%] left-1/2 -translate-x-1/2 text-[8px] font-bold text-slate-300">03/1{i}</div>
-                                    </div>
-                                  ))}
+                               <p className="text-sm font-black text-slate-900 mb-2 uppercase tracking-tight">Ventas últimos 7 días</p>
+                               <div className="flex-1 relative mt-10">
+                                  {/* Grid Lines */}
+                                  <div className="absolute inset-0 flex flex-col justify-between py-2">
+                                     {[...Array(5)].map((_, i) => (
+                                       <div key={i} className="w-full border-t border-slate-50"></div>
+                                     ))}
+                                  </div>
+                                  
+                                  {/* SVG Graph */}
+                                  <svg className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                     <defs>
+                                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                           <stop offset="0%" stopColor="rgb(var(--primary-rgb))" stopOpacity="0.3" />
+                                           <stop offset="100%" stopColor="rgb(var(--primary-rgb))" stopOpacity="0" />
+                                        </linearGradient>
+                                     </defs>
+                                     {/* Fill Area */}
+                                     <path 
+                                       d="M 0,95 C 15,92 25,85 35,80 C 45,75 55,85 65,70 C 75,55 85,30 100,5 L 100,100 L 0,100 Z" 
+                                       fill="url(#chartGradient)"
+                                     />
+                                     {/* Line */}
+                                     <path 
+                                       d="M 0,95 C 15,92 25,85 35,80 C 45,75 55,85 65,70 C 75,55 85,30 100,5" 
+                                       fill="none" 
+                                       stroke="rgb(var(--primary-rgb))" 
+                                       strokeWidth="3" 
+                                       strokeLinecap="round"
+                                       className="drop-shadow-[0_4px_8px_rgba(var(--primary-rgb),0.5)]"
+                                     />
+                                     {/* Dots */}
+                                     {[
+                                       { x: 35, y: 80 },
+                                       { x: 65, y: 70 },
+                                       { x: 100, y: 5 }
+                                     ].map((p, i) => (
+                                       <circle key={i} cx={p.x} cy={p.y} r="3" fill="white" stroke="rgb(var(--primary-rgb))" strokeWidth="2" />
+                                     ))}
+                                  </svg>
+
+                                  {/* X-Axis Labels */}
+                                  <div className="absolute -bottom-6 inset-x-0 flex justify-between px-2">
+                                     {['03/13', '03/14', '03/15', '03/16', '03/17', '03/18'].map(d => (
+                                       <span key={d} className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">{d}</span>
+                                     ))}
+                                  </div>
                                </div>
                             </div>
                             
                             <div className="bg-white p-8 rounded-[38px] border border-slate-100 shadow-sm flex flex-col">
+
                                <div className="flex items-center gap-2 mb-8">
                                   <span className="material-symbols-outlined text-slate-400">local_shipping</span>
                                   <p className="text-sm font-black text-slate-900 uppercase tracking-tight">Top Flota (Vueltas)</p>
