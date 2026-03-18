@@ -110,6 +110,22 @@ export default function ConfigPage() {
                 />
               </div>
               <div className="flex flex-col gap-2 md:col-span-2">
+                <label className="text-xs font-black uppercase text-slate-400">Logo de la Empresa (URL PNG/JPG)</label>
+                <div className="relative">
+                  <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+                  <input 
+                    type="text" 
+                    value={config.logo_url || ''}
+                    onChange={(e) => setConfig({...config, logo_url: e.target.value})}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl h-14 pl-14 pr-5 font-bold"
+                    placeholder="https://ejemplo.com/logo.png"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-500 italic mt-1 px-4">
+                  * Este logo aparecerá automáticamente en todas tus guías de despacho impresas.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="text-xs font-black uppercase text-slate-400">Dirección de Planta / Matriz</label>
                 <div className="relative">
                   <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-slate-400" />

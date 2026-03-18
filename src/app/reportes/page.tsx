@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
 import { processBIStats, filterByRange, GuiaData } from '@/lib/bi-engine';
 import { 
@@ -33,6 +33,7 @@ export default function ReportesPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [config, setConfig] = useState<any>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -46,6 +47,11 @@ export default function ReportesPage() {
 
   useEffect(() => {
     if (!profile?.empresa_id) return;
+
+    // Fetch Config
+    getDoc(doc(db, 'configuracion_empresa', profile.empresa_id)).then((snap: any) => {
+      if (snap.exists()) setConfig(snap.data());
+    });
 
     const qClients = query(collection(db, 'clientes'), where('empresa_id', '==', profile.empresa_id));
     const unsubClients = onSnapshot(qClients, (snapshot) => {
@@ -430,7 +436,7 @@ export default function ReportesPage() {
 
       {/* Reprint Modal */}
       {reprintGuia && (
-        <ReprintModal guia={reprintGuia} onClose={() => setReprintGuia(null)} />
+        <ReprintModal guia={reprintGuia} config={config} profile={profile} onClose={() => setReprintGuia(null)} />
       )}
     </div>
   );
@@ -453,21 +459,24 @@ function StatCard({ title, value, icon, trend }: { title: string, value: string,
   );
 }
 
-function ReprintModal({ guia, onClose }: { guia: GuiaData; onClose: () => void }) {
+function ReprintModal({ guia, config, profile, onClose }: { guia: GuiaData; config: any; profile: any; onClose: () => void }) {
   const numStr = guia.numero_guia ? guia.numero_guia.toString().padStart(6, '0') : guia.id.slice(-6).toUpperCase();
   const copies = [
     { label: 'COPIA CLIENTE', key: 'client' },
     { label: 'COPIA INTERNA', key: 'internal' },
   ];
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
+  };
+
   return (
     <>
-      {/* Backdrop (hidden on print) */}
-      <div className="fixed inset-0 z-[9998] bg-black/60 flex items-center justify-center no-print">
+      <div className="fixed inset-0 z-[9998] bg-black/60 flex items-center justify-center no-print p-4">
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-2xl max-w-sm w-full text-center">
           <h2 className="text-xl font-black mb-1">Reimprimir Guía</h2>
           <p className="text-slate-500 text-sm mb-1">Guía <span className="font-mono font-black text-primary">N° {numStr}</span></p>
-          <p className="text-slate-500 text-sm mb-6">{guia.cliente_nombre} — {guia.material_nombre}</p>
+          <p className="text-slate-500 text-sm mb-6 truncate">{guia.cliente_nombre}</p>
           <div className="flex gap-3 justify-center">
             <button
               onClick={onClose}
@@ -485,16 +494,20 @@ function ReprintModal({ guia, onClose }: { guia: GuiaData; onClose: () => void }
         </div>
       </div>
 
-      {/* Hidden Print Content */}
       <div className="hidden print:block fixed inset-0 bg-white z-[9999] text-black">
         {copies.map((copy) => (
           <div key={copy.key} className="reprint-copy">
             <div className="flex justify-between items-start">
               <div className="flex gap-4 items-center">
-                <div className="size-16 rounded border flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 font-bold uppercase">Logo</div>
+                {config?.logo_url ? (
+                  <img src={config.logo_url} alt="Logo" className="max-h-16 w-auto" />
+                ) : (
+                  <div className="size-16 rounded border flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 font-bold uppercase">Logo</div>
+                )}
                 <div>
-                  <h1 className="text-xl font-black uppercase text-slate-900">Gravoka SpA</h1>
-                  <p className="text-[10px] text-slate-500">Guía de Despacho</p>
+                  <h1 className="text-xl font-black uppercase text-slate-900">{config?.nombre_empresa || 'Gravoka SpA'}</h1>
+                  <p className="text-xs font-bold">{config?.rut || 'RUT 77.XXX.XXX-X'}</p>
+                  <p className="text-[10px] text-slate-500">{config?.direccion || 'Matriz de Operaciones'}</p>
                 </div>
               </div>
               <div className="text-right border-2 border-red-500 p-3 rounded">
@@ -505,7 +518,7 @@ function ReprintModal({ guia, onClose }: { guia: GuiaData; onClose: () => void }
 
             <div className="grid grid-cols-2 gap-8 my-6">
               <div className="border p-3 rounded bg-slate-50">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Destinatario</h4>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Cliente</h4>
                 <p className="font-black text-md uppercase">{guia.cliente_nombre}</p>
                 <p className="text-[10px]"><b>OBRA:</b> {guia.obra || 'Despacho Directo'}</p>
               </div>
@@ -529,9 +542,17 @@ function ReprintModal({ guia, onClose }: { guia: GuiaData; onClose: () => void }
                 <tr>
                   <td className="border p-3 text-sm font-bold uppercase">{guia.material_nombre}</td>
                   <td className="border p-3 text-center text-lg font-black">{guia.cantidad} m³</td>
-                  <td className="border p-3 text-right text-md font-black">
-                    {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(guia.total_estimado)}
-                  </td>
+                  <td className="border p-3 text-right text-md font-black">{formatCurrency(guia.total_estimado)}</td>
+                </tr>
+                {(guia.flete_costo || 0) > 0 && (
+                  <tr>
+                    <td colSpan={2} className="border p-2 text-right text-[10px] font-black uppercase bg-slate-50">Flete / Transporte</td>
+                    <td className="border p-2 text-right text-sm font-bold">{formatCurrency(guia.flete_costo || 0)}</td>
+                  </tr>
+                )}
+                <tr>
+                  <td colSpan={2} className="border p-2 text-right text-[10px] font-black uppercase bg-slate-100">Total Final</td>
+                  <td className="border p-2 text-right text-lg font-black bg-slate-100">{formatCurrency(guia.total_estimado + (guia.flete_costo || 0))}</td>
                 </tr>
               </tbody>
             </table>
@@ -539,6 +560,7 @@ function ReprintModal({ guia, onClose }: { guia: GuiaData; onClose: () => void }
             <div className="flex justify-between items-end mt-4">
               <div className="flex flex-col gap-1 text-[9px] opacity-70">
                 <span>PAGO: {guia.metodo_pago?.toUpperCase()}</span>
+                <span>REIMPRESO POR: {profile?.nombre || 'SISTEMA'}</span>
                 <span>GRAVOKA SaaS v4.5</span>
               </div>
               <div className="flex gap-10 items-end">
@@ -563,21 +585,41 @@ function ReprintModal({ guia, onClose }: { guia: GuiaData; onClose: () => void }
 
       <style jsx global>{`
         @media print {
-          .no-print { display: none !important; }
+          @page {
+            margin: 0;
+            size: auto;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+            background: white !important;
+          }
+          header, footer, nav, aside, .no-print {
+            display: none !important;
+          }
+          body * {
+            visibility: hidden;
+          }
+          .reprint-copy, .reprint-copy * {
+            visibility: visible;
+          }
           .reprint-copy {
             width: 100%;
             height: 100vh;
-            padding: 40px;
+            padding: 1.5cm;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            page-break-after: always;
-            break-after: page;
+            page-break-after: always !important;
+            break-after: page !important;
             box-sizing: border-box;
+            background: white !important;
+            color: black !important;
+            position: relative;
           }
           .reprint-copy:last-child {
-            page-break-after: avoid;
-            break-after: avoid;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
       `}</style>

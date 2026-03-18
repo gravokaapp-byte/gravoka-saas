@@ -394,7 +394,7 @@ export default function GuiasPage() {
 
             <div className="grid grid-cols-2 gap-8 my-6">
               <div className="border p-3 rounded bg-slate-50">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Destinatario</h4>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Cliente</h4>
                 <p className="font-black text-md uppercase">{clients.find(c => c.id === selectedClientId)?.name}</p>
                 <p className="text-[10px]"><b>OBRA:</b> {obra}</p>
               </div>
@@ -419,6 +419,16 @@ export default function GuiasPage() {
                   <td className="border p-3 text-sm font-bold uppercase">{selectedMaterial?.nombre}</td>
                   <td className="border p-3 text-center text-lg font-black">{quantity} m³</td>
                   <td className="border p-3 text-right text-md font-black">{formatCurrency(total)}</td>
+                </tr>
+                {parseFloat(fleteCost) > 0 && (
+                  <tr>
+                    <td colSpan={2} className="border p-2 text-right text-[10px] font-black uppercase bg-slate-50">Flete / Transporte</td>
+                    <td className="border p-2 text-right text-sm font-bold">{formatCurrency(parseFloat(fleteCost))}</td>
+                  </tr>
+                )}
+                <tr>
+                  <td colSpan={2} className="border p-2 text-right text-[10px] font-black uppercase bg-slate-100">Total Final</td>
+                  <td className="border p-2 text-right text-lg font-black bg-slate-100">{formatCurrency(total + (parseFloat(fleteCost) || 0))}</td>
                 </tr>
               </tbody>
             </table>
@@ -452,6 +462,18 @@ export default function GuiasPage() {
 
       <style jsx global>{`
         @media print {
+          @page {
+            margin: 0;
+            size: auto;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+            background: white !important;
+          }
+          header, footer, nav, aside {
+            display: none !important;
+          }
           body * {
             visibility: hidden;
           }
@@ -459,25 +481,28 @@ export default function GuiasPage() {
             visibility: visible;
           }
           .print\:block {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+            position: static !important;
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .print-copy {
             width: 100%;
             height: 100vh;
-            padding: 40px;
+            padding: 1.5cm;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            page-break-after: always;
-            break-after: page;
+            page-break-after: always !important;
+            break-after: page !important;
             box-sizing: border-box;
+            background: white !important;
+            color: black !important;
           }
           .print-copy:last-child {
-            page-break-after: avoid;
-            break-after: avoid;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
       `}</style>

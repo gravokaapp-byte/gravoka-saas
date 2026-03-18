@@ -16,6 +16,7 @@ import {
 
 interface Guia {
   id: string;
+  numero_guia?: number;
   cliente_id: string;
   material: string;
   cantidad: number;
@@ -454,7 +455,7 @@ export default function Dashboard() {
                 recentGuias.map((guia) => (
                   <tr key={guia.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-4 md:px-6 py-4 font-mono text-[10px] md:text-xs text-slate-400 italic">
-                      #{guia.id.substring(0, 4).toUpperCase()}
+                      {guia.numero_guia ? `N° ${guia.numero_guia.toString().padStart(6, '0')}` : `#${guia.id.substring(0, 4).toUpperCase()}`}
                     </td>
                     <td className="px-4 md:px-6 py-4">
                       <div className="text-[10px] md:text-sm font-black text-slate-900 dark:text-white uppercase leading-tight truncate max-w-[120px] md:max-w-none">
