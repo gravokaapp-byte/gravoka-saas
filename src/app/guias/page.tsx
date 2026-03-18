@@ -97,6 +97,17 @@ export default function GuiasPage() {
   const [showToast, setShowToast] = useState(false);
   const [guiaNumero, setGuiaNumero] = useState<number | null>(null);
 
+  // Print Effect: Triggers when guiaNumero is set after a successful emit
+  useEffect(() => {
+    if (guiaNumero !== null) {
+      // Small delay to ensure React has painted the print-ticket-container
+      const timer = setTimeout(() => {
+        window.print();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [guiaNumero]);
+
   const handleEmitir = async () => {
     if (!selectedClientId || !selectedMaterialId || !quantity || !paymentMethod || !selectedCamionId) {
       alert('Por favor complete todos los campos obligatorios incluyendo cliente, camión y material.');
@@ -144,17 +155,13 @@ export default function GuiasPage() {
       });
 
       setGuiaNumero(nextNumero);
+      // Removed direct print() call from here and will use useEffect instead.
 
       // Feedback visual
       setShowToast(true);
       setTimeout(() => setShowToast(false), 5000);
 
-      // Trigger Print
-      setTimeout(() => {
-        window.print();
-      }, 1000);
-
-      // Reset form (delayed to allow browser to capture state for print)
+      // Reset form after a considerable delay
       setTimeout(() => {
         setSelectedClientId('');
         setSelectedMaterialId('');
@@ -164,7 +171,7 @@ export default function GuiasPage() {
         setObra('Despacho Directo');
         setPaymentMethod(null);
         setGuiaNumero(null);
-      }, 3000);
+      }, 5000);
 
     } catch (error) {
       console.error("Error al emitir guía", error);
@@ -179,6 +186,7 @@ export default function GuiasPage() {
   };
 
   return (
+    <>
     <div className="flex flex-col h-full overflow-y-auto no-print">
       <main className="flex flex-1 justify-center py-6 px-4 md:px-10 lg:px-40">
         <div className="flex flex-col max-w-[960px] flex-1 gap-6">
@@ -367,8 +375,10 @@ export default function GuiasPage() {
         </div>
       )}
 
-      {/* Hidden Print Ticket - Dual Copy */}
-      <div className="print-ticket-container" key={guiaNumero ? `print-${guiaNumero}` : 'print-empty'}>
+    </div>
+    
+    {/* Hidden Print Ticket - Dual Copy */}
+    <div className="print-ticket-container" key={guiaNumero ? `print-${guiaNumero}` : 'print-empty'}>
         {[
           { label: 'COPIA CLIENTE', key: 'client' },
           { label: 'COPIA INTERNA', key: 'internal' }
@@ -474,12 +484,16 @@ export default function GuiasPage() {
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            z-index: 999999 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999999 !important;
             background: white !important;
             color: black !important;
             overflow: visible !important;
+            visibility: visible !important;
+          }
+          .print-copy, .print-copy * {
+            visibility: visible !important;
           }
           .print-copy {
             width: 100vw;
@@ -500,6 +514,6 @@ export default function GuiasPage() {
           }
         }
       `}</style>
-    </div>
+    </>
   );
 }

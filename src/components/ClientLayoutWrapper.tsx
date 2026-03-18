@@ -35,9 +35,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         children
       ) : (
         <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
-          <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+          <div className="no-print">
+            <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+          </div>
           <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <Header onMenuClick={() => setIsSidebarOpen(true)} />
+            <div className="no-print">
+              <Header onMenuClick={() => setIsSidebarOpen(true)} />
+            </div>
             <div className="flex-1 overflow-auto p-2 md:p-8">
               {children}
             </div>
