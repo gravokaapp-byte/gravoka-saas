@@ -3,15 +3,25 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 
 export default function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <LayoutContent>{children}</LayoutContent>
+    </AuthProvider>
+  );
+}
+
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const isLoginPage = pathname === '/login';
   const isRegistroPage = pathname === '/registro';
-  const isLandingPage = pathname === '/';
+  // El root (/) es público SOLO si el usuario no ha iniciado sesión (Landing Page)
+  const isLandingPage = pathname === '/' && !user;
   const isPublicPage = isLoginPage || isRegistroPage || isLandingPage;
 
   // Cerrar sidebar al cambiar de ruta en móviles
@@ -20,7 +30,7 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
   }, [pathname]);
 
   return (
-    <AuthProvider>
+    <>
       {isPublicPage ? (
         children
       ) : (
@@ -34,6 +44,6 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
           </main>
         </div>
       )}
-    </AuthProvider>
+    </>
   );
 }
