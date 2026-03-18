@@ -24,6 +24,7 @@ export default function ConfigPage() {
   const [config, setConfig] = useState({
     nombre_empresa: '',
     rut: '',
+    logo_url: '',
     direccion: '',
     email_notificaciones: '',
     alerta_stock_bajo: true,
