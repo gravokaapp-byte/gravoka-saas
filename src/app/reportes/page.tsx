@@ -95,8 +95,8 @@ export default function ReportesPage() {
 
   const exportToExcel = () => {
     const data = filteredGuias.map(g => ({
-      'Folio Interno': g.id.slice(-6).toUpperCase(),
-      'ID Completo': g.id,
+      'N° Guía': g.numero_guia ? g.numero_guia.toString().padStart(6, '0') : 'N/A',
+      'Folio Sist.': g.id.slice(-6).toUpperCase(),
       Fecha: g.creado_en?.toDate().toLocaleString('es-CL') || 'N/A',
       Cliente: g.cliente_nombre,
       Material: g.material_nombre,
