@@ -115,11 +115,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // If authenticated user is on root and company is active, redirect to dashboard
+      // If authenticated user is on root and company is active, stay there (Dashboard)
       if (currentUser && pathname === '/') {
         if (fetchedEmpresaData?.estado !== 'activo') {
           router.push('/suscripcion');
-        } else {
-          router.push('/');
         }
         return;
       }

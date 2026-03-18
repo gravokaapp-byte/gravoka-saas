@@ -11,7 +11,8 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
   
   const isLoginPage = pathname === '/login';
   const isRegistroPage = pathname === '/registro';
-  const isPublicPage = isLoginPage || isRegistroPage;
+  const isLandingPage = pathname === '/';
+  const isPublicPage = isLoginPage || isRegistroPage || isLandingPage;
 
   // Cerrar sidebar al cambiar de ruta en móviles
   useEffect(() => {
