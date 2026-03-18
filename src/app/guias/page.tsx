@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, getDoc, runTransaction, setDoc } from 'firebase/firestore';
 
 type PaymentMethod = 'credito' | 'efectivo' | 'transferencia' | null;
 
@@ -95,6 +95,7 @@ export default function GuiasPage() {
 
   const [fleteCost, setFleteCost] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [guiaNumero, setGuiaNumero] = useState<number | null>(null);
 
   const handleEmitir = async () => {
     if (!selectedClientId || !selectedMaterialId || !quantity || !paymentMethod || !selectedCamionId) {
@@ -108,23 +109,41 @@ export default function GuiasPage() {
     try {
       const selectedCamion = camiones.find(c => c.id === selectedCamionId);
 
-      await addDoc(collection(db, 'guias'), {
-        empresa_id: profile.empresa_id,
-        cliente_id: selectedClientId,
-        cliente_nombre: clients.find(c => c.id === selectedClientId)?.name || 'Anónimo',
-        material_id: selectedMaterialId,
-        material_nombre: selectedMaterial?.nombre,
-        cantidad: parseFloat(quantity),
-        obra: obra,
-        metodo_pago: paymentMethod,
-        total_estimado: total,
-        flete_costo: parseFloat(fleteCost) || 0,
-        camion_id: selectedCamionId,
-        camion_patente: selectedCamion?.patente,
-        conductor_nombre: selectedCamion?.conductor_nombre,
-        creado_en: serverTimestamp(),
-        estado: 'Emitida'
+      // Get next sequential guide number for this company via transaction
+      const contadorRef = doc(db, 'contadores', profile.empresa_id);
+      let nextNumero = 1;
+
+      await runTransaction(db, async (transaction) => {
+        const contadorSnap = await transaction.get(contadorRef);
+        if (contadorSnap.exists()) {
+          nextNumero = (contadorSnap.data().ultimo_numero_guia || 0) + 1;
+          transaction.update(contadorRef, { ultimo_numero_guia: nextNumero });
+        } else {
+          nextNumero = 1;
+          transaction.set(contadorRef, { ultimo_numero_guia: 1 });
+        }
+
+        transaction.set(doc(collection(db, 'guias')), {
+          empresa_id: profile.empresa_id,
+          numero_guia: nextNumero,
+          cliente_id: selectedClientId,
+          cliente_nombre: clients.find(c => c.id === selectedClientId)?.name || 'Anónimo',
+          material_id: selectedMaterialId,
+          material_nombre: selectedMaterial?.nombre,
+          cantidad: parseFloat(quantity),
+          obra: obra,
+          metodo_pago: paymentMethod,
+          total_estimado: total,
+          flete_costo: parseFloat(fleteCost) || 0,
+          camion_id: selectedCamionId,
+          camion_patente: selectedCamion?.patente,
+          conductor_nombre: selectedCamion?.conductor_nombre,
+          creado_en: serverTimestamp(),
+          estado: 'Emitida'
+        });
       });
+
+      setGuiaNumero(nextNumero);
 
       // Feedback visual
       setShowToast(true);
@@ -142,6 +161,7 @@ export default function GuiasPage() {
         setFleteCost('');
         setObra('Despacho Directo');
         setPaymentMethod(null);
+        setGuiaNumero(null);
       }, 500);
 
     } catch (error) {
@@ -351,7 +371,7 @@ export default function GuiasPage() {
           { label: 'COPIA CLIENTE', key: 'client' },
           { label: 'COPIA INTERNA', key: 'internal' }
         ].map((copy, index) => (
-          <div key={copy.key} className={`h-[50vh] p-8 flex flex-col justify-between ${index === 0 ? 'border-b-2 border-dashed border-slate-300' : ''}`}>
+          <div key={copy.key} className="h-screen p-8 flex flex-col justify-between print-page-break">
             
             <div className="flex justify-between items-start">
               <div className="flex gap-4 items-center">
@@ -368,7 +388,7 @@ export default function GuiasPage() {
               </div>
               <div className="text-right border-2 border-red-500 p-3 rounded">
                 <h3 className="text-red-500 font-bold text-sm">GUÍA DE DESPACHO ELECTRÓNICA</h3>
-                <p className="text-lg font-mono font-black italic">N° {Math.floor(Math.random() * 10000).toString().padStart(6, '0')}</p>
+                <p className="text-lg font-mono font-black italic">N° {(guiaNumero ?? 0).toString().padStart(6, '0')}</p>
               </div>
             </div>
 
@@ -436,6 +456,10 @@ export default function GuiasPage() {
             left: 0;
             top: 0;
             width: 100%;
+          }
+          .print-page-break {
+            page-break-after: always;
+            break-after: page;
           }
         }
       `}</style>
