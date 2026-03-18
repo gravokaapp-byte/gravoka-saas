@@ -13,10 +13,10 @@ export async function POST(request: Request) {
     const empresaRef = await adminDb.collection('empresas').add({
       nombre: empresaNombre,
       rut: rut || 'N/A',
-      plan_activo: 'Pro (Trial)',
+      plan_activo: 'Startup',
       estado: 'activo', // O 'pendiente' si quieres pago forzado al inicio
       creado_en: new Date().toISOString(),
-      fecha_vencimiento: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 días trial
+      fecha_vencimiento: null // Startup no vence
     });
 
     // 2. Crear el Usuario de Firebase Auth

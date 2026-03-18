@@ -59,16 +59,16 @@ export default async function SuscripcionPage({
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col">
             <div className="px-6 py-8 sm:p-10 sm:pb-6">
               <div>
-                <h3 className="inline-flex px-4 py-1 rounded-full text-sm font-semibold tracking-wide uppercase bg-[#EBF5EE] text-[#00A859]" id="tier-standard">
-                  Plan Pro
+                <h3 className="inline-flex px-4 py-1 rounded-full text-sm font-semibold tracking-wide uppercase bg-primary/10 text-primary" id="tier-standard">
+                  Plan Full
                 </h3>
               </div>
-              <div className="mt-4 flex items-baseline text-5xl font-extrabold text-gray-900 dark:text-white">
-                $49.990
+              <div className="mt-4 flex items-baseline text-5xl font-extrabold text-gray-900 dark:text-white tracking-tighter">
+                $45.000
                 <span className="ml-1 text-xl font-medium text-gray-500 dark:text-gray-400">/mes</span>
               </div>
               <p className="mt-5 text-lg text-gray-500 dark:text-gray-400">
-                Todo lo que necesitas para operar tu planta de forma digital.
+                Todo el poder estratégico de BI y gestión multi-planta.
               </p>
             </div>
             <div className="flex-1 flex flex-col justify-between px-6 pt-6 pb-8 sm:p-10 sm:pt-6">
@@ -100,7 +100,7 @@ export default async function SuscripcionPage({
                     </svg>
                   </div>
                   <p className="ml-3 text-base text-gray-700 dark:text-gray-300">
-                    Analítica Avanzada y KPIs de Rentabilidad
+                    Soporte Prioritario y Multi-Empresa
                   </p>
                 </li>
               </ul>

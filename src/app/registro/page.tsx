@@ -47,7 +47,7 @@ export default function RegistroPage() {
       fData.append('rut', formData.rut);
       fData.append('adminEmail', formData.adminEmail);
       fData.append('adminPassword', formData.adminPassword);
-      fData.append('plan', 'Pro (Trial)');
+      fData.append('plan', 'Startup');
 
       // LLAMADA AL ACTION (Temporalmente vamos a usar una versión pública que crearé ahora)
       const response = await fetch('/api/public/register', {
