@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function ConfigPage() {
-  const { profile } = useAuth();
+  const { profile, effectivePlan } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -112,18 +112,26 @@ export default function ConfigPage() {
               </div>
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="text-xs font-black uppercase text-slate-400">Logo de la Empresa (URL PNG/JPG)</label>
-                <div className="relative">
+                <div className={`relative ${effectivePlan === 'Startup' ? 'opacity-50 grayscale' : ''}`}>
                   <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
                   <input 
                     type="text" 
                     value={config.logo_url || ''}
+                    disabled={effectivePlan === 'Startup'}
                     onChange={(e) => setConfig({...config, logo_url: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl h-14 pl-14 pr-5 font-bold"
-                    placeholder="https://ejemplo.com/logo.png"
+                    placeholder={effectivePlan === 'Startup' ? "Disponible en Plan Full" : "https://ejemplo.com/logo.png"}
                   />
+                  {effectivePlan === 'Startup' && (
+                    <div className="absolute inset-0 bg-transparent flex items-center justify-end pr-5">
+                       <span className="bg-primary/10 text-primary text-[10px] px-2 py-1 rounded-full font-black uppercase">Plan Full</span>
+                    </div>
+                  )}
                 </div>
                 <p className="text-[10px] text-slate-500 italic mt-1 px-4">
-                  * Este logo aparecerá automáticamente en todas tus guías de despacho impresas.
+                  {effectivePlan === 'Startup' 
+                    ? '* Mejora tu plan para habilitar la personalización de marca en tus guías.'
+                    : '* Este logo aparecerá automáticamente en todas tus guías de despacho impresas.'}
                 </p>
               </div>
               <div className="flex flex-col gap-2 md:col-span-2">

@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 export default function ReportesPage() {
-  const { profile } = useAuth();
+  const { profile, effectivePlan } = useAuth();
   const [guias, setGuias] = useState<GuiaData[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -180,7 +180,12 @@ export default function ReportesPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <StatCard title="Ventas Totales" value={formatCurrency(stats.summary.revenue)} icon={<Circle className="text-primary" />} trend="+12.5% vs ayer" />
           <StatCard title="M3 Despachados" value={`${stats.summary.volume.toFixed(1)} m³`} icon={<Package className="text-blue-500" />} trend="En meta" />
-          <StatCard title="Utilidad Neta" value={formatCurrency(stats.summary.revenue - stats.summary.flete)} icon={<CheckCircle2 className="text-emerald-500" />} trend="Margen 84%" />
+          <StatCard 
+            title="Utilidad Neta" 
+            value={effectivePlan === 'Startup' ? 'Plan Full' : formatCurrency(stats.summary.revenue - stats.summary.flete)} 
+            icon={<CheckCircle2 className="text-emerald-500" />} 
+            trend={effectivePlan === 'Startup' ? 'Margen Protegido' : "Margen 84%"} 
+          />
           <StatCard title="Operaciones" value={stats.summary.operations.toString()} icon={<Truck className="text-orange-500" />} trend="Flujo constante" />
         </div>
 
@@ -238,11 +243,11 @@ export default function ReportesPage() {
         {/* Charts Row 2 - NEW */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
           {/* Driver Productivity */}
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="relative bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-8 flex items-center gap-2">
               <Users className="size-4" /> Rendimiento de Choferes
             </h3>
-            <div className="h-[250px] w-full">
+            <div className={`h-[250px] w-full ${effectivePlan === 'Startup' ? 'blur-md grayscale opacity-30 select-none pointer-events-none' : ''}`}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.topDrivers} layout="vertical">
                   <XAxis type="number" hide />
@@ -255,14 +260,15 @@ export default function ReportesPage() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            {effectivePlan === 'Startup' && <PremiumOverlay />}
           </div>
 
           {/* Destination Volume */}
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="relative bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-8 flex items-center gap-2">
               <MapPin className="size-4" /> Destinos (m³)
             </h3>
-            <div className="h-[250px] w-full flex items-center justify-center">
+            <div className={`h-[250px] w-full flex items-center justify-center ${effectivePlan === 'Startup' ? 'blur-md grayscale opacity-30 select-none pointer-events-none' : ''}`}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -283,14 +289,15 @@ export default function ReportesPage() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            {effectivePlan === 'Startup' && <PremiumOverlay />}
           </div>
 
           {/* Client Profit Margins */}
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="relative bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
               <FileSpreadsheet className="size-4" /> Rentabilidad por Cliente
             </h3>
-            <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className={`space-y-4 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar ${effectivePlan === 'Startup' ? 'blur-md grayscale opacity-30 select-none pointer-events-none' : ''}`}>
               {stats.topClients.map(c => (
                 <div key={c.nombre} className="p-3 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                   <div className="flex justify-between items-start mb-2">
@@ -312,6 +319,7 @@ export default function ReportesPage() {
                 </div>
               ))}
             </div>
+            {effectivePlan === 'Startup' && <PremiumOverlay />}
           </div>
         </div>
 
@@ -454,6 +462,25 @@ function StatCard({ title, value, icon, trend }: { title: string, value: string,
       <div>
         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{title}</p>
         <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mt-1">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function PremiumOverlay() {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/10 dark:bg-slate-900/10 backdrop-blur-[2px] z-10 p-6 text-center">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+        <div className="size-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Circle className="size-6 text-primary fill-primary animate-pulse" />
+        </div>
+        <h4 className="text-lg font-black tracking-tight mb-1">Métrica Premium</h4>
+        <p className="text-xs text-slate-500 mb-6 max-w-[180px] mx-auto leading-relaxed">
+          Esta analítica detallada es exclusiva para usuarios del <b>Plan Full</b>.
+        </p>
+        <button className="w-full py-3 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20">
+          Mejorar Plan
+        </button>
       </div>
     </div>
   );

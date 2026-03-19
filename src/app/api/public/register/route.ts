@@ -9,14 +9,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Campos faltantes' }, { status: 400 });
     }
 
-    // 1. Crear la Empresa (Tenant)
+    // 1. Crear la Empresa (Tenant) con 15 días de TRIAL FULL
+    const fechaVencimiento = new Date();
+    fechaVencimiento.setDate(fechaVencimiento.getDate() + 15);
+
     const empresaRef = await adminDb.collection('empresas').add({
       nombre: empresaNombre,
       rut: rut || 'N/A',
-      plan_activo: 'Startup',
-      estado: 'activo', // O 'pendiente' si quieres pago forzado al inicio
+      plan_activo: 'Full',
+      es_trial: true,
+      estado: 'activo',
       creado_en: new Date().toISOString(),
-      fecha_vencimiento: null // Startup no vence
+      fecha_vencimiento: fechaVencimiento.toISOString()
     });
 
     // 2. Crear el Usuario de Firebase Auth

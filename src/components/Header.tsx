@@ -8,7 +8,7 @@ import { getNotifications, markNotificationAsRead, Notification } from '@/app/ac
 export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, user } = useAuth();
+  const { profile, user, effectivePlan } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   
@@ -51,6 +51,18 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
           </svg>
         </button>
         <h2 className="text-sm md:text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate max-w-[200px] md:max-w-none ml-1 uppercase">{title}</h2>
+        
+        {profile?.es_trial && effectivePlan === 'Full' && profile.fecha_vencimiento && (
+          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full animate-in fade-in zoom-in-95 duration-500">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            </span>
+            <span className="text-[10px] font-black text-primary uppercase tracking-tighter">
+              {Math.ceil((new Date(profile.fecha_vencimiento).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} días de Prueba Full
+            </span>
+          </div>
+        )}
       </div>
       
       <div className="flex items-center gap-2 md:gap-4">

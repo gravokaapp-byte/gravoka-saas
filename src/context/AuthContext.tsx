@@ -10,11 +10,15 @@ export interface UserProfile {
   empresa_id?: string;
   rol?: string;
   nombre?: string;
+  plan_activo?: 'Startup' | 'Full';
+  fecha_vencimiento?: string | null;
+  es_trial?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
+  effectivePlan: 'Startup' | 'Full';
   loading: boolean;
   logout: () => Promise<void>;
 }
@@ -22,6 +26,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({ 
   user: null, 
   profile: null, 
+  effectivePlan: 'Startup',
   loading: true,
   logout: async () => {} 
 });
@@ -55,11 +60,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                // Sync with cookie for Server Components
                document.cookie = `empresa_id=${fetchedProfile.empresa_id}; path=/; max-age=3600; SameSite=Lax`;
                
-               const empresaRef = doc(db, 'empresas', fetchedProfile.empresa_id);
-               const empresaSnap = await getDoc(empresaRef);
-               if (empresaSnap.exists()) {
-                  fetchedEmpresaData = empresaSnap.data();
-               }
+                const empresaRef = doc(db, 'empresas', fetchedProfile.empresa_id);
+                const empresaSnap = await getDoc(empresaRef);
+                if (empresaSnap.exists()) {
+                   fetchedEmpresaData = empresaSnap.data();
+                   // Merge plan data into user profile for easy access
+                   fetchedProfile = {
+                      ...fetchedProfile,
+                      plan_activo: fetchedEmpresaData.plan_activo,
+                      fecha_vencimiento: fetchedEmpresaData.fecha_vencimiento,
+                      es_trial: fetchedEmpresaData.es_trial
+                   };
+                   setProfile(fetchedProfile);
+                }
             }
           } else {
             console.warn('Usuario sin perfil definido en Firestore.');
@@ -151,12 +164,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const publicPaths = ['/login', '/registro', '/'];
   const isPublicPath = publicPaths.includes(pathname);
+  
+  const effectivePlan = (profile?.plan_activo === 'Full' && profile?.fecha_vencimiento) 
+    ? (new Date(profile.fecha_vencimiento) > new Date() ? 'Full' : 'Startup')
+    : profile?.plan_activo || 'Startup';
 
   if (!user && !isPublicPath) {
     return null;
   }
 
-  return <AuthContext.Provider value={{ user, profile, loading, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, profile, effectivePlan, loading, logout }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);

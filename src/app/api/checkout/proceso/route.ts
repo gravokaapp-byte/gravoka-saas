@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     empresaId = formData.get('empresaId')?.toString() || 'sin_id';
     const isTest = formData.get('isTest') === 'true';
-    const amount = 1000; // Temporalmente 1.000 para pruebas reales
+    const amount = 79000; // Plan Full: $79.000 CLP
 
     const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!token) {
