@@ -64,7 +64,7 @@ export default async function SuscripcionPage({
                 </h3>
               </div>
               <div className="mt-4 flex items-baseline text-5xl font-extrabold text-gray-900 dark:text-white tracking-tighter">
-                $79.000
+                $79.990
                 <span className="ml-1 text-xl font-medium text-gray-500 dark:text-gray-400">/mes</span>
               </div>
               <p className="mt-5 text-lg text-gray-500 dark:text-gray-400">

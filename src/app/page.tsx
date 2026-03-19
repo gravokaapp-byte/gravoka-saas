@@ -516,9 +516,9 @@ export default function Dashboard() {
               <div className="p-12 bg-slate-900/50 border border-white/10 rounded-[56px] backdrop-blur-3xl flex flex-col hover:border-white/20 transition-all group">
                 <span className="bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase mb-4 w-fit">INICIAL</span>
                 <h4 className="text-3xl font-black mb-1 uppercase tracking-tighter">STARTUP</h4>
-                <p className="text-[10px] font-medium text-slate-500 mb-6 uppercase tracking-wider italic">"Digitaliza tu operación por el costo de 1 m³ de Estabilizado Bajo 3""</p>
+                <p className="text-[13px] font-medium text-slate-500 mb-6 uppercase tracking-wider italic">Digitaliza tu operación por el costo de 1 m³ de Estabilizado Bajo 3"</p>
                 <div className="flex items-baseline gap-2 mb-10">
-                  <span className="text-6xl font-black text-white">$29.9k</span>
+                  <span className="text-6xl font-black text-white">$29.990</span>
                   <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">/ Mes</span>
                 </div>
                 <ul className="space-y-5 mb-12 flex-1">
@@ -537,8 +537,8 @@ export default function Dashboard() {
                 <span className="text-primary font-black tracking-widest uppercase text-[10px] mb-8">PROFESIONAL</span>
                 <h4 className="text-3xl font-black mb-2 uppercase tracking-tighter">FULL</h4>
                 <div className="flex items-baseline gap-2 mb-10">
-                  <span className="text-6xl font-black text-white">$79k</span>
-                  <span className="text-primary font-bold uppercase text-[10px] tracking-widest">/ MES ACCESO TOTAL</span>
+                  <span className="text-6xl font-black text-white">$79.990</span>
+                  <span className="text-primary font-bold uppercase text-[12px] tracking-widest">/ MES ACCESO TOTAL</span>
                 </div>
                 <ul className="space-y-5 mb-12 flex-1">
                   {['Todo lo de Startup', 'Dashboard BI Estratégico', 'Control Multi-Empresa', 'Métricas de Eficiencia', 'Personalización de Marca', 'Soporte Prioritario 24/7'].map((item, i) => (
