@@ -121,8 +121,19 @@ export default function ReportesPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Reporte_Gravoka");
     
-    // Escribir el archivo
-    XLSX.writeFile(wb, `Reporte_Gravoka_${new Date().toISOString().split('T')[0]}.xlsx`);
+    // Escribir el archivo usando un Blob para mayor compatibilidad de nombres
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fileName = `Reporte_Gravoka_${new Date().toISOString().split('T')[0]}.xlsx`;
+    
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const formatCurrency = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(n);
