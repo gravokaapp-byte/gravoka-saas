@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { sendWelcomeEmail, sendAdminRegistrationAlert } from '@/lib/mail';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const { empresaNombre, rut, adminEmail, adminPassword, plan } = await request.json();

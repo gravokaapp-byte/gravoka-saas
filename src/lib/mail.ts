@@ -1,11 +1,20 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization function to avoid build-time errors
+const getResend = () => {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey && process.env.NODE_ENV === 'production') {
+    console.warn('RESEND_API_KEY is missing');
+  }
+  // We use a fallback key to avoid initialization errors during build
+  return new Resend(apiKey || 're_missing_key_for_build');
+};
 
 export const sendWelcomeEmail = async (email: string, empresaNombre: string) => {
+  const resend = getResend();
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Gravoka <no-reply@tecno-artificial.com>',
+      from: 'Gravoka <soporte@tecno-artificial.com>',
       to: [email],
       subject: '¡Bienvenido a Gravoka! 🚀',
       html: `
@@ -25,18 +34,19 @@ export const sendWelcomeEmail = async (email: string, empresaNombre: string) => 
     });
 
     if (error) {
-      console.error('Error sending welcome email:', error);
+      console.error('Error enviando email de bienvenida:', error);
       return { success: false, error };
     }
 
     return { success: true, data };
   } catch (err) {
-    console.error('Unexpected error in sendWelcomeEmail:', err);
+    console.error('Excepción enviando email de bienvenida:', err);
     return { success: false, error: err };
   }
 };
 
-export const sendAdminRegistrationAlert = async (empresaNombre: string, email: string) => {
+export const sendAdminRegistrationAlert = async (empresaNombre: string, adminEmail: string) => {
+  const resend = getResend();
   try {
     const { data, error } = await resend.emails.send({
       from: 'Sistema Gravoka <alertas@tecno-artificial.com>',
@@ -48,7 +58,7 @@ export const sendAdminRegistrationAlert = async (empresaNombre: string, email: s
           <p>Se ha registrado un nuevo cliente:</p>
           <ul>
             <li><strong>Empresa:</strong> ${empresaNombre}</li>
-            <li><strong>Email:</strong> ${email}</li>
+            <li><strong>Email Admin:</strong> ${adminEmail}</li>
             <li><strong>Fecha:</strong> ${new Date().toLocaleString()}</li>
           </ul>
           <p><a href="https://www.gravoka.app/admin/empresas">Ver en el Panel Administrador</a></p>
@@ -57,17 +67,19 @@ export const sendAdminRegistrationAlert = async (empresaNombre: string, email: s
     });
 
     if (error) {
-      console.error('Error sending admin alert:', error);
+      console.error('Error enviando alerta admin:', error);
+      return { success: false, error };
     }
 
     return { success: true, data };
   } catch (err) {
-    console.error('Unexpected error in admin alert:', err);
+    console.error('Excepción enviando alerta admin:', err);
     return { success: false, error: err };
   }
 };
 
-export const sendPaymentSuccessEmail = async (email: string, empresaNombre: string, plan: string) => {
+export const sendPaymentSuccessEmail = async (email: string, amount: string, plan: string) => {
+  const resend = getResend();
   try {
     const { data, error } = await resend.emails.send({
       from: 'Facturación Gravoka <pagos@tecno-artificial.com>',
@@ -76,10 +88,10 @@ export const sendPaymentSuccessEmail = async (email: string, empresaNombre: stri
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #10b981;">Confirmación de Pago</h2>
-          <p>Hola ${empresaNombre},</p>
-          <p>Te confirmamos que hemos recibido tu pago correctamente. Tu cuenta ha sido actualizada.</p>
+          <p>Hola,</p>
+          <p>Te confirmamos que hemos recibido tu pago correctamente por el plan <strong>${plan}</strong>.</p>
           <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #bbf7d0;">
-            <p style="margin: 0;"><strong>Plan Activo:</strong> ${plan}</p>
+            <p style="margin: 0;"><strong>Monto:</strong> $${amount}</p>
             <p style="margin: 5px 0 0 0;"><strong>Estado:</strong> Activo / Pagado</p>
           </div>
           <p>Ya puedes seguir gestionando tus guías y camiones con normalidad.</p>
@@ -91,12 +103,13 @@ export const sendPaymentSuccessEmail = async (email: string, empresaNombre: stri
     });
 
     if (error) {
-      console.error('Error sending payment email:', error);
+      console.error('Error enviando email de pago:', error);
+      return { success: false, error };
     }
 
     return { success: true, data };
   } catch (err) {
-    console.error('Unexpected error in payment email:', err);
+    console.error('Excepción enviando email de pago:', err);
     return { success: false, error: err };
   }
 };

@@ -1,4 +1,4 @@
-import { sendWelcomeEmail, sendAdminRegistrationAlert } from './src/lib/mail';
+import { sendWelcomeEmail, sendAdminRegistrationAlert } from '../src/lib/mail';
 
 async function testEmails() {
   console.log('--- Iniciando prueba de correos con Resend ---');
