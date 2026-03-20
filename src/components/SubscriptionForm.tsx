@@ -3,8 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
-export default function SubscriptionForm({ empresaId: initialEmpresaId }: { empresaId?: string }) {
-  const { profile, loading: authLoading } = useAuth();
+export default function SubscriptionForm({ 
+  empresaId: initialEmpresaId,
+  plan = 'Full',
+  price = 79990
+}: { 
+  empresaId?: string,
+  plan?: string,
+  price?: number
+}) {
+  const { user, profile, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState(initialEmpresaId || '');
@@ -27,6 +35,9 @@ export default function SubscriptionForm({ empresaId: initialEmpresaId }: { empr
     try {
       const formData = new FormData();
       formData.append('empresaId', empresaId);
+      formData.append('email', user?.email || '');
+      formData.append('plan', plan);
+      formData.append('price', price.toString());
 
       const response = await fetch('/api/checkout/proceso', {
         method: 'POST',

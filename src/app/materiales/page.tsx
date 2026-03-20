@@ -165,7 +165,6 @@ export default function MaterialesPage() {
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Unidad</label>
                   <select name="unidad" className="w-full px-4 py-2 border rounded-xl dark:bg-slate-950 dark:border-slate-800">
                     <option value="m3">m³ (Metros Cúbicos)</option>
-                    <option value="ton">Ton (Toneladas)</option>
                     <option value="un">Un (Unidades)</option>
                   </select>
                 </div>

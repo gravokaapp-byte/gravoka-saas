@@ -26,7 +26,7 @@ interface Camion {
 }
 
 export default function GuiasPage() {
-  const { profile } = useAuth();
+  const { profile, loading, effectivePlan } = useAuth();
   
   const [clients, setClients] = useState<Client[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -391,7 +391,7 @@ export default function GuiasPage() {
                     {config?.logo_url ? (
                       <img src={config.logo_url} alt="Logo" className="max-h-16 w-auto" />
                     ) : (
-                      <div className="size-16 rounded border flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 font-bold uppercase">Logo</div>
+                      <div className="size-16 rounded border flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 font-bold uppercase">Gravoka</div>
                     )}
                     <div>
                       <h1 className="text-xl font-black uppercase text-slate-900">{config?.nombre_empresa || 'Gravoka SpA'}</h1>

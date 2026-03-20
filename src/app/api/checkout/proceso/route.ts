@@ -12,8 +12,33 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     empresaId = formData.get('empresaId')?.toString() || 'sin_id';
+    const adminEmail = formData.get('email')?.toString() || '';
+    const planRequested = formData.get('plan')?.toString() || 'Full';
     const isTest = formData.get('isTest') === 'true';
-    const amount = 79990; // Plan Full: $79.990 CLP
+    
+    // --- NUEVO: Obtener precio oficial desde Firestore (Single Source of Truth) ---
+    let amount = planRequested === 'Full' ? 79990 : 29990;
+    try {
+      // Necesitamos usar firebase-admin aquí porque estamos en un Route Handler (Server side)
+      // O podemos usar el SDK de cliente si el entorno lo permite, pero mejor Admin si está disponible.
+      // Revisando imports... usa 'mercadopago'. 
+      // Vemos si hay acceso a admin. 
+      const { db } = await import('@/lib/firebase/config');
+      const { doc, getDoc } = await import('firebase/firestore');
+      
+      const saasConfigRef = doc(db, 'config', 'saas');
+      const saasConfigSnap = await getDoc(saasConfigRef);
+      
+      if (saasConfigSnap.exists()) {
+        const data = saasConfigSnap.data();
+        if (data.pricing) {
+          amount = planRequested === 'Full' ? data.pricing.full : data.pricing.startup;
+          console.log(`[Checkout] Precio dinámico cargado para ${planRequested}: ${amount}`);
+        }
+      }
+    } catch (dbError) {
+      console.error("Error al obtener precio de Firestore, usando fallback:", dbError);
+    }
 
     const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!token) {
@@ -37,8 +62,8 @@ export async function POST(request: Request) {
       body: {
         items: [
           {
-            id: isTest ? 'gravoka-test' : 'gravoka-pro',
-            title: isTest ? 'Gravoka SaaS - Pago de Prueba' : 'Gravoka SaaS - Plan Pro',
+            id: isTest ? 'gravoka-test' : `gravoka-${planRequested.toLowerCase()}`,
+            title: isTest ? 'Gravoka SaaS - Pago de Prueba' : `Gravoka SaaS - Plan ${planRequested}`,
             quantity: 1,
             unit_price: amount,
             currency_id: 'CLP',
@@ -53,7 +78,8 @@ export async function POST(request: Request) {
         binary_mode: true,
         metadata: {
             empresa_id: empresaId,
-            plan: 'pro'
+            plan: planRequested,
+            email: adminEmail
         },
         notification_url: `${baseUrl}/api/webhooks/mercadopago`
       }

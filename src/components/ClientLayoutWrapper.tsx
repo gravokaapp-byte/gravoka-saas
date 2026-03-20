@@ -14,7 +14,7 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
 }
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, profile, loading } = useAuth();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
@@ -24,10 +24,23 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const isLandingPage = pathname === '/' && !user;
   const isPublicPage = isLoginPage || isRegistroPage || isLandingPage;
 
+  // Redirection flash prevention: 
+  // If user is logged in but on '/', we are likely about to redirect. 
+  // Show loading until profile is ready and we know where to go.
+  const isRedirecting = user && pathname === '/' && !profile?.rol;
+
   // Cerrar sidebar al cambiar de ruta en móviles
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [pathname]);
+
+  if (loading || isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <>

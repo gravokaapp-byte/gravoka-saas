@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createTenantAction } from '@/app/actions/tenantActions';
 import { useAuth } from '@/context/AuthContext';
+import { db } from '@/lib/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function RegistroPage() {
   const [formData, setFormData] = useState({
@@ -12,13 +14,35 @@ export default function RegistroPage() {
     rut: '',
     adminEmail: '',
     adminPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    plan: 'Full' as 'Startup' | 'Full'
   });
   const [loading, setLoading] = useState(false);
+  const [pricing, setPricing] = useState({ startup: 29990, full: 79990 });
+  const [loadingPricing, setLoadingPricing] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
   const { user } = useAuth();
+
+  // Load dynamic pricing
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        const docRef = doc(db, 'config', 'saas');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.pricing) setPricing(data.pricing);
+        }
+      } catch (err) {
+        console.error("Error loading pricing:", err);
+      } finally {
+        setLoadingPricing(false);
+      }
+    };
+    fetchPricing();
+  }, []);
 
   // Redirigir si ya está logueado
   if (user) {
@@ -38,18 +62,7 @@ export default function RegistroPage() {
     }
 
     try {
-      // Nota: createTenantAction actualmente pide idToken de superadmin
-      // Para propositos de esta demo/MVP inicial, vamos a permitir el registro 
-      // Si decidimos que el registro es abierto, necesitamos una versión sin chequeo de token.
-      
-      const fData = new FormData();
-      fData.append('empresaNombre', formData.empresaNombre);
-      fData.append('rut', formData.rut);
-      fData.append('adminEmail', formData.adminEmail);
-      fData.append('adminPassword', formData.adminPassword);
-      fData.append('plan', 'Startup');
-
-      // LLAMADA AL ACTION (Temporalmente vamos a usar una versión pública que crearé ahora)
+      // LLAMADA AL API PÚBLICA DE REGISTRO
       const response = await fetch('/api/public/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,6 +126,45 @@ export default function RegistroPage() {
                 onChange={e => setFormData({...formData, rut: e.target.value})}
               />
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Selecciona tu Plan Inicial (Incluye 15 días Full Trial)</label>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, plan: 'Startup' })}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all group ${
+                  formData.plan === 'Startup'
+                    ? 'border-primary bg-primary/10 text-white'
+                    : 'border-white/5 bg-slate-800/30 text-slate-500 hover:border-white/10'
+                }`}
+              >
+                <span className={`material-symbols-outlined text-3xl mb-1 ${formData.plan === 'Startup' ? 'text-primary' : 'text-slate-600'}`}>storefront</span>
+                <span className="font-bold text-sm uppercase tracking-tight">Plan Startup</span>
+                <span className="text-[10px] opacity-60 font-medium">
+                  {loadingPricing ? 'Cargando...' : `$${pricing.startup.toLocaleString('es-CL')} / mes`}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, plan: 'Full' })}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all group ${
+                  formData.plan === 'Full'
+                    ? 'border-primary bg-primary/10 text-white'
+                    : 'border-white/5 bg-slate-800/30 text-slate-500 hover:border-white/10'
+                }`}
+              >
+                <span className={`material-symbols-outlined text-3xl mb-1 ${formData.plan === 'Full' ? 'text-primary' : 'text-slate-600'}`}>diamond</span>
+                <span className="font-bold text-sm uppercase tracking-tight">Plan Full</span>
+                <span className="text-[10px] opacity-60 font-medium">
+                  {loadingPricing ? 'Cargando...' : `$${pricing.full.toLocaleString('es-CL')} / mes`}
+                </span>
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-500 text-center italic mt-2">
+              * Independiente del plan elegido, los primeros 15 días tendrás acceso total a todas las funciones (Trial Full).
+            </p>
           </div>
 
           <div className="space-y-2">

@@ -16,10 +16,21 @@ import {
 
 function calculateDaysRemaining(fechaVencimiento: any) {
   if (!fechaVencimiento) return null;
-  const expiry = new Date(fechaVencimiento.seconds * 1000);
+  
+  let expiry: Date;
+  if (fechaVencimiento.seconds) {
+    expiry = new Date(fechaVencimiento.seconds * 1000);
+  } else if (typeof fechaVencimiento === 'string') {
+    expiry = new Date(fechaVencimiento);
+  } else if (fechaVencimiento instanceof Date) {
+    expiry = fechaVencimiento;
+  } else {
+    return null;
+  }
+
   const now = new Date();
   const diffTime = expiry.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 }
 
@@ -98,9 +109,8 @@ export default function SuperAdminPage() {
   }
 
   const pieData = saasStats ? [
-    { name: 'Básico', value: saasStats.planes.Básico, color: '#94A3B8' },
-    { name: 'Pro', value: saasStats.planes.Pro, color: '#00A859' },
-    { name: 'Enterprise', value: saasStats.planes.Enterprise, color: '#1E293B' },
+    { name: 'Startup', value: saasStats.planes.Startup || saasStats.planes.Básico || 0, color: '#94A3B8' },
+    { name: 'Full', value: (saasStats.planes.Full || saasStats.planes.Pro || 0) + (saasStats.planes.Enterprise || 0), color: '#00A859' },
   ].filter(d => d.value > 0) : [];
 
   return (
@@ -146,10 +156,10 @@ export default function SuperAdminPage() {
           color="bg-blue-500"
         />
         <MetricCard 
-          title="Suscripciones Pro" 
-          value={saasStats?.planes.Pro.toString() || '0'} 
+          title="Suscripciones Full" 
+          value={((saasStats?.planes.Full || 0) + (saasStats?.planes.Pro || 0) + (saasStats?.planes.Enterprise || 0)).toString()} 
           icon="verified" 
-          secondary="Plan popular"
+          secondary="Plan total"
           color="bg-primary"
         />
         <MetricCard 
@@ -201,10 +211,10 @@ export default function SuperAdminPage() {
                       </td>
                       <td className="px-4 md:px-8 py-6">
                         <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase ${
-                          empresa.plan_activo === 'Enterprise' ? 'bg-slate-900 text-white' : 
-                          empresa.plan_activo === 'Pro' ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-600'
+                          empresa.plan_activo === 'Full' || empresa.plan_activo === 'Enterprise' || empresa.plan_activo === 'Pro' ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-600'
                         }`}>
-                          {empresa.plan_activo}
+                          {empresa.plan_activo === 'Enterprise' || empresa.plan_activo === 'Pro' ? 'Full' : 
+                           empresa.plan_activo === 'Básico' ? 'Startup' : empresa.plan_activo}
                         </span>
                       </td>
                       <td className="px-4 md:px-8 py-6">
@@ -219,7 +229,11 @@ export default function SuperAdminPage() {
                         {empresa.fecha_vencimiento ? (
                           <div className="flex flex-col">
                             <span className="text-[11px] md:text-sm font-bold text-slate-700 dark:text-slate-200">
-                              {new Date(empresa.fecha_vencimiento.seconds * 1000).toLocaleDateString('es-CL')}
+                              {(() => {
+                                if (!empresa.fecha_vencimiento) return 'Sin fecha';
+                                if (empresa.fecha_vencimiento.seconds) return new Date(empresa.fecha_vencimiento.seconds * 1000).toLocaleDateString('es-CL');
+                                return new Date(empresa.fecha_vencimiento).toLocaleDateString('es-CL');
+                              })()}
                             </span>
                             {(() => {
                               const days = calculateDaysRemaining(empresa.fecha_vencimiento);

@@ -12,7 +12,7 @@ export async function createTenantAction(formData: FormData) {
     const rut = formData.get('rut') as string;
     const adminEmail = formData.get('adminEmail') as string;
     const adminPassword = formData.get('adminPassword') as string;
-    const plan = (formData.get('plan') as string) || 'Básico';
+    const plan = (formData.get('plan') as string) || 'Startup';
 
     if (!empresaNombre || !adminEmail || !adminPassword) {
       throw new Error('Empresa, Email y Password son obligatorios.');
@@ -25,7 +25,7 @@ export async function createTenantAction(formData: FormData) {
       plan_activo: plan,
       estado: 'activo',
       creado_en: new Date().toISOString(),
-      fecha_vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 dias por defecto
+      fecha_vencimiento: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString() // 15 dias para demo gratis
     });
 
     // 3. Create the Client's Admin User in Firebase Auth
@@ -94,6 +94,75 @@ export async function createManualUserAction(data: {
     };
   } catch (error: any) {
     console.error('Error creating manual user:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function resetPasswordAction(email: string) {
+  try {
+    const link = await adminAuth.generatePasswordResetLink(email);
+    return { success: true, link };
+  } catch (error: any) {
+    console.error('Error generating reset link:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateUserAction(uid: string, data: { 
+  nombre: string, 
+  rol: string, 
+  empresa_id: string 
+}) {
+  try {
+    // 1. Update Firestore
+    await adminDb.collection('usuarios').doc(uid).update({
+      nombre: data.nombre,
+      rol: data.rol,
+      empresa_id: data.empresa_id,
+      actualizado_en: new Date().toISOString()
+    });
+
+    // 2. Update Auth DisplayName
+    await adminAuth.updateUser(uid, {
+      displayName: data.nombre
+    });
+
+    return { success: true, message: 'Usuario actualizado correctamente.' };
+  } catch (error: any) {
+    console.error('Error updating user:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function toggleUserStatusAction(uid: string, disabled: boolean) {
+  try {
+    // 1. Update Auth
+    await adminAuth.updateUser(uid, { disabled });
+    
+    // 2. Update Firestore
+    await adminDb.collection('usuarios').doc(uid).update({
+      estado: disabled ? 'inactivo' : 'activo',
+      actualizado_en: new Date().toISOString()
+    });
+
+    return { success: true, message: `Usuario ${disabled ? 'desactivado' : 'activado'} correctamente.` };
+  } catch (error: any) {
+    console.error('Error toggling user status:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteUserAction(uid: string) {
+  try {
+    // 1. Delete from Auth
+    await adminAuth.deleteUser(uid);
+    
+    // 2. Delete from Firestore
+    await adminDb.collection('usuarios').doc(uid).delete();
+
+    return { success: true, message: 'Usuario eliminado permanentemente.' };
+  } catch (error: any) {
+    console.error('Error deleting user:', error);
     return { success: false, error: error.message };
   }
 }

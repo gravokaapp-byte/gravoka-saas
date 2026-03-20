@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { db } from '@/lib/firebase/config';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { 
   Settings2, 
   CreditCard, 
@@ -18,21 +20,50 @@ export default function AdminConfigPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Mock SaaS pricing (would be in Firestore in a full implementation)
   const [pricing, setPricing] = useState({
-    basico: 29990,
-    pro: 49990,
-    enterprise: 99990
+    startup: 29990,
+    full: 79990
   });
+  const [registroPublico, setRegistroPublico] = useState(false);
+  const [modoMantenimiento, setModoMantenimiento] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const docRef = doc(db, 'config', 'saas');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.pricing) setPricing(data.pricing);
+          if (data.registroPublico !== undefined) setRegistroPublico(data.registroPublico);
+          if (data.modoMantenimiento !== undefined) setModoMantenimiento(data.modoMantenimiento);
+        }
+      } catch (error) {
+        console.error("Error al cargar configuración SaaS:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      await setDoc(doc(db, 'config', 'saas'), {
+        pricing,
+        registroPublico,
+        modoMantenimiento,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    }, 1000);
+    } catch (error) {
+      console.error("Error al guardar configuración SaaS:", error);
+      alert("Error al guardar la configuración.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (profile?.rol !== 'superadmin') {
@@ -58,10 +89,9 @@ export default function AdminConfigPage() {
           <h3 className="text-xl font-black mb-6 flex items-center gap-3">
             <CreditCard className="text-primary" /> Precios de Planes (CLP)
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <PriceInput label="Plan Básico" value={pricing.basico} onChange={(v) => setPricing({...pricing, basico: v})} />
-            <PriceInput label="Plan Pro" value={pricing.pro} onChange={(v) => setPricing({...pricing, pro: v})} />
-            <PriceInput label="Plan Enterprise" value={pricing.enterprise} onChange={(v) => setPricing({...pricing, enterprise: v})} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <PriceInput label="Plan Startup" value={pricing.startup} onChange={(v) => setPricing({...pricing, startup: v})} />
+            <PriceInput label="Plan Full" value={pricing.full} onChange={(v) => setPricing({...pricing, full: v})} />
           </div>
           <p className="mt-6 text-xs text-slate-400 italic">
             * Estos valores se reflejarán automáticamente en la página de suscripción y en el cálculo del MRR.
@@ -77,12 +107,14 @@ export default function AdminConfigPage() {
             <ToggleOption 
               title="Registro Público" 
               description="Permitir que nuevas empresas se registren sin invitación previa." 
-              checked={false} 
+              checked={registroPublico} 
+              onToggle={() => setRegistroPublico(!registroPublico)}
             />
             <ToggleOption 
               title="Modo Mantenimiento" 
               description="Suspender el acceso a todos los clientes temporalmente." 
-              checked={false} 
+              checked={modoMantenimiento} 
+              onToggle={() => setModoMantenimiento(!modoMantenimiento)}
             />
           </div>
         </div>
@@ -126,9 +158,9 @@ function PriceInput({ label, value, onChange }: { label: string, value: number, 
   );
 }
 
-function ToggleOption({ title, description, checked }: { title: string, description: string, checked: boolean }) {
+function ToggleOption({ title, description, checked, onToggle }: { title: string, description: string, checked: boolean, onToggle: () => void }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl">
+    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors" onClick={onToggle}>
       <div>
         <p className="font-bold text-sm tracking-tight">{title}</p>
         <p className="text-[10px] text-slate-500 font-medium">{description}</p>

@@ -159,9 +159,8 @@ export default function EmpresasAdminPage() {
                       defaultValue={selectedEmpresa.plan_activo}
                       className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold appearance-none"
                     >
-                      <option value="Básico">Básico</option>
-                      <option value="Pro">Pro</option>
-                      <option value="Enterprise">Enterprise</option>
+                      <option value="Startup">Startup</option>
+                      <option value="Full">Full</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -266,9 +265,8 @@ export default function EmpresasAdminPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400">Plan</label>
                     <select name="plan" className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50 dark:bg-slate-950 font-bold appearance-none">
-                      <option value="Pro (Demo)">Pro (Demo)</option>
-                      <option value="Básico">Básico</option>
-                      <option value="Enterprise">Enterprise</option>
+                      <option value="Full">Full (Recomendado)</option>
+                      <option value="Startup">Startup</option>
                     </select>
                   </div>
                 </div>
@@ -292,6 +290,7 @@ export default function EmpresasAdminPage() {
               <tr>
                 <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Empresa</th>
                 <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Plan</th>
+                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Vencimiento</th>
                 <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Salud</th>
                 <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Estado</th>
                 <th className="px-4 md:px-6 py-4 text-right text-[10px] font-black uppercase text-slate-400 tracking-wider">Acciones</th>
@@ -333,14 +332,45 @@ export default function EmpresasAdminPage() {
                   </td>
                   <td className="px-4 md:px-6 py-5">
                     <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase ${
-                      empresa.plan_activo === 'Enterprise' ? 'bg-slate-900 text-white' : 
-                      empresa.plan_activo === 'Pro' ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-600'
+                       empresa.plan_activo === 'Full' ? 'bg-indigo-100 text-indigo-700' : 
+                       empresa.plan_activo === 'Startup' ? 'bg-sky-100 text-sky-700' : 
+                       'bg-slate-100 text-slate-600'
                     }`}>
-                      {empresa.plan_activo}
+                      {empresa.plan_activo || 'Sin Plan'}
                     </span>
                   </td>
                   <td className="px-4 md:px-6 py-5">
-                    <div className="flex items-center gap-2" title={empresa.lastActivity ? `Última guía: ${empresa.lastActivity.toLocaleDateString()}` : 'Nunca ha emitido guías'}>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-700">
+                        {empresa.fecha_vencimiento?.seconds 
+                          ? new Date(empresa.fecha_vencimiento.seconds * 1000).toLocaleDateString()
+                          : empresa.fecha_vencimiento 
+                            ? new Date(empresa.fecha_vencimiento).toLocaleDateString()
+                            : 'Pendiente'}
+                      </span>
+                      {empresa.fecha_vencimiento && (
+                        <span className={`text-[10px] font-black uppercase ${
+                          (() => {
+                            const venc = empresa.fecha_vencimiento?.seconds 
+                              ? new Date(empresa.fecha_vencimiento.seconds * 1000)
+                              : new Date(empresa.fecha_vencimiento);
+                            const diff = Math.floor((venc.getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                            return diff <= 0 ? 'text-red-500' : diff <= 5 ? 'text-amber-500' : 'text-slate-400';
+                          })()
+                        }`}>
+                          {(() => {
+                            const venc = empresa.fecha_vencimiento?.seconds 
+                              ? new Date(empresa.fecha_vencimiento.seconds * 1000)
+                              : new Date(empresa.fecha_vencimiento);
+                            const diff = Math.floor((venc.getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                            return diff <= 0 ? 'Expirado' : `En ${diff} días`;
+                          })()}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 md:px-6 py-5">
+                    <div className="flex items-center gap-2" title={empresa.lastActivity ? `Última guía: ${empresa.lastActivity.toLocaleDateString()}` : 'Sin actividad reciente'}>
                       <div className={`size-2 rounded-full ${healthDot}`} />
                       <span className={`text-[10px] font-black uppercase ${healthColor}`}>
                         {healthLabel}

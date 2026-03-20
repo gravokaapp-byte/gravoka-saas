@@ -30,7 +30,7 @@ interface ClientMap {
 }
 
 export default function Dashboard() {
-  const { profile, loading } = useAuth();
+  const { profile, loading, effectivePlan } = useAuth();
   const router = useRouter();
   const [activeChartFilter, setActiveChartFilter] = useState('Semana Actual');
 
@@ -47,6 +47,8 @@ export default function Dashboard() {
   const [empresaData, setEmpresaData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [pricing, setPricing] = useState({ startup: 29990, full: 79990 });
+  const [loadingPricing, setLoadingPricing] = useState(true);
   const [allGuias, setAllGuias] = useState<Guia[]>([]);
 
   useEffect(() => {
@@ -54,63 +56,85 @@ export default function Dashboard() {
   }, []);
 
   // Loading is true only if we are still determining auth OR if we have a profile and are fetching data
-  const isActuallyLoading = loading || (!!profile && isLoading);
+  const isActuallyLoading = loading || (!!profile && isLoading) || profile?.rol === 'superadmin';
+
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        const docRef = doc(db, 'config', 'saas');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.pricing) setPricing(data.pricing);
+        }
+      } catch (error) {
+        console.error("Error loading pricing:", error);
+      } finally {
+        setLoadingPricing(false);
+      }
+    };
+    fetchPricing();
+  }, []);
 
   useEffect(() => {
     // Fetch Empresa Data for subscription info
     const fetchEmpresa = async () => {
-      if (!profile) return;
+      if (!profile || profile.rol === 'superadmin') return;
       const eDoc = await getDoc(doc(db, 'empresas', profile.empresa_id!));
       if (eDoc.exists()) setEmpresaData(eDoc.data());
     };
     fetchEmpresa();
 
     // Listen to Clients to map IDs to Names
-    const clientsQ = query(collection(db, 'clientes'), where('empresa_id', '==', profile?.empresa_id || ''));
-    const unsubClients = onSnapshot(clientsQ, (snapshot) => {
-      const cmap: ClientMap = {};
-      snapshot.forEach(doc => {
-        cmap[doc.id] = doc.data().name;
-      });
-      setClientNames(cmap);
-    });
-
-    // Listen to Guias
-    const guiasQ = query(
-      collection(db, 'guias'),
-      where('empresa_id', '==', profile?.empresa_id || ''),
-      orderBy('creado_en', 'desc')
-    );
-
-    const unsubGuias = onSnapshot(guiasQ, (snapshot) => {
-      let totalVentas = 0;
-      let totalVolumen = 0;
-      const guiasData: Guia[] = [];
-
-      snapshot.forEach(doc => {
-        const data = doc.data() as Guia;
-        totalVentas += data.total_estimado || 0;
-        totalVolumen += data.cantidad || 0;
-        guiasData.push({ ...data, id: doc.id });
+    if (profile && profile.rol !== 'superadmin') {
+      const clientsQ = query(collection(db, 'clientes'), where('empresa_id', '==', profile?.empresa_id || ''));
+      const unsubClients = onSnapshot(clientsQ, (snapshot) => {
+        const cmap: ClientMap = {};
+        snapshot.forEach(doc => {
+          cmap[doc.id] = doc.data().name;
+        });
+        setClientNames(cmap);
       });
 
-      setStats({
-        ventas: totalVentas,
-        volumen: totalVolumen,
-        guias: snapshot.size
+      // Listen to Guias
+      const guiasQ = query(
+        collection(db, 'guias'),
+        where('empresa_id', '==', profile?.empresa_id || ''),
+        orderBy('creado_en', 'desc')
+      );
+
+      const unsubGuias = onSnapshot(guiasQ, (snapshot) => {
+        let totalVentas = 0;
+        let totalVolumen = 0;
+        const guiasData: Guia[] = [];
+
+        snapshot.forEach(doc => {
+          const data = doc.data() as Guia;
+          totalVentas += data.total_estimado || 0;
+          totalVolumen += data.cantidad || 0;
+          guiasData.push({ ...data, id: doc.id });
+        });
+
+        setStats({
+          ventas: totalVentas,
+          volumen: totalVolumen,
+          guias: snapshot.size
+        });
+
+        // Keep only top 5 for the table
+        setRecentGuias(guiasData.slice(0, 5));
+        setAllGuias(guiasData);
+        setIsLoading(false);
       });
 
-      // Keep only top 5 for the table
-      setRecentGuias(guiasData.slice(0, 5));
-      setAllGuias(guiasData);
+      return () => {
+        unsubClients();
+        unsubGuias();
+      };
+    } else if (!profile && !loading) {
       setIsLoading(false);
-    });
-
-    return () => {
-      unsubClients();
-      unsubGuias();
-    };
-  }, [profile?.empresa_id]);
+    }
+  }, [profile?.empresa_id, profile?.rol, loading]);
 
   const handleExport = () => {
     if (allGuias.length === 0) {
@@ -168,7 +192,7 @@ export default function Dashboard() {
     if (!expiry) return null;
 
     const now = new Date();
-    return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   };
 
   const chartData = useMemo(() => {
@@ -349,9 +373,14 @@ export default function Dashboard() {
                           ))}
                           <button className="px-4 py-1.5 text-[10px] font-black text-white bg-primary rounded-lg shadow-md shadow-primary/20 uppercase">Histórico</button>
                         </div>
-                        <button className="px-6 py-2.5 bg-slate-950 text-white rounded-xl font-black text-[10px] flex items-center gap-2 uppercase">
-                          <span className="material-symbols-outlined text-sm">download</span> Exportar Excel
-                        </button>
+                        {effectivePlan === 'Full' && (
+                          <button 
+                            onClick={handleExport}
+                            className="px-6 py-2.5 bg-slate-950 text-white rounded-xl font-black text-[10px] flex items-center gap-2 uppercase hover:scale-105 active:scale-95 transition-all"
+                          >
+                            <span className="material-symbols-outlined text-sm">download</span> Exportar Excel
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -378,50 +407,63 @@ export default function Dashboard() {
 
                     {/* Main Graph & Sidebar */}
                     <div className="grid grid-cols-3 gap-8">
-                      <div className="col-span-2 bg-white p-8 rounded-[38px] border border-slate-100 shadow-sm h-80 flex flex-col relative overflow-hidden">
-                        <p className="text-sm font-black text-slate-900 mb-2 uppercase tracking-tight">Ventas últimos 7 días</p>
-                        <div className="flex-1 relative mt-12 bg-white">
-                          {/* Precise Grid Lines (Dashed as in Screenshots) */}
-                          <div className="absolute inset-0 flex flex-col justify-between py-1">
-                            {[...Array(5)].map((_, i) => (
-                              <div key={i} className="w-full border-t border-slate-100/60 border-dashed"></div>
-                            ))}
-                          </div>
+                      {effectivePlan === 'Full' ? (
+                        <div className="col-span-2 bg-white p-8 rounded-[38px] border border-slate-100 shadow-sm h-80 flex flex-col relative overflow-hidden">
+                          <p className="text-sm font-black text-slate-900 mb-2 uppercase tracking-tight">Ventas últimos 7 días</p>
+                          <div className="flex-1 relative mt-12 bg-white">
+                            {/* Precise Grid Lines (Dashed as in Screenshots) */}
+                            <div className="absolute inset-0 flex flex-col justify-between py-1">
+                              {[...Array(5)].map((_, i) => (
+                                <div key={i} className="w-full border-t border-slate-100/60 border-dashed"></div>
+                              ))}
+                            </div>
 
-                          {/* PRODUCTION REPLICA GRAPH (NO DOTS, CLEAN CURVE) */}
-                          <svg className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
-                            <defs>
-                              <linearGradient id="chartGradientProd" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
-                                <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-                              </linearGradient>
-                            </defs>
+                            {/* PRODUCTION REPLICA GRAPH (NO DOTS, CLEAN CURVE) */}
+                            <svg className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                              <defs>
+                                <linearGradient id="chartGradientProd" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                                  <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                                </linearGradient>
+                              </defs>
 
-                            {/* Fill Area mimicking production */}
-                            <path
-                              d="M 0,93 C 10,93 15,93 20,92 C 25,91 35,82 40,84 C 45,86 55,95 60,95 C 65,95 75,91 80,89 C 85,87 95,45 100,28 L 100,100 L 0,100 Z"
-                              fill="url(#chartGradientProd)"
-                            />
+                              {/* Fill Area mimicking production */}
+                              <path
+                                d="M 0,93 C 10,93 15,93 20,92 C 25,91 35,82 40,84 C 45,86 55,95 60,95 C 65,95 75,91 80,89 C 85,87 95,45 100,28 L 100,100 L 0,100 Z"
+                                fill="url(#chartGradientProd)"
+                              />
 
-                            {/* Simple Production Line - Emerald #10b981 */}
-                            <path
-                              d="M 0,93 C 10,93 15,93 20,92 C 25,91 35,82 40,84 C 45,86 55,95 60,95 C 65,95 75,91 80,89 C 85,87 95,45 100,28"
-                              fill="none"
-                              stroke="#10b981"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                              {/* Simple Production Line - Emerald #10b981 */}
+                              <path
+                                d="M 0,93 C 10,93 15,93 20,92 C 25,91 35,82 40,84 C 45,86 55,95 60,95 C 65,95 75,91 80,89 C 85,87 95,45 100,28"
+                                fill="none"
+                                stroke="#10b981"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
 
-                          {/* X-Axis Labels (Aligned with humps) */}
-                          <div className="absolute -bottom-8 inset-x-0 flex justify-between px-1">
-                            {[' ', '03/13', '03/14', '03/15', '03/16', '03/17', '03/18'].map((d, i) => (
-                              <span key={i} className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter w-12 text-center">{d}</span>
-                            ))}
+                            {/* X-Axis Labels (Aligned with humps) */}
+                            <div className="absolute -bottom-8 inset-x-0 flex justify-between px-1">
+                              {[' ', '03/13', '03/14', '03/15', '03/16', '03/17', '03/18'].map((d, i) => (
+                                <span key={i} className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter w-12 text-center">{d}</span>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="col-span-2 bg-gradient-to-br from-slate-50 to-slate-100 p-8 rounded-[38px] border border-dashed border-slate-300 h-80 flex flex-col items-center justify-center text-center gap-4 group">
+                          <div className="size-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-200 group-hover:scale-110 transition-transform">
+                            <Zap className="size-8 text-slate-300" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-900 uppercase">Gráficos Avanzados BI</p>
+                            <p className="text-xs text-slate-500 max-w-[240px] mt-1 font-medium italic">Mejora tu plan a Full para visualizar tendencias y métricas estratégicas.</p>
+                          </div>
+                          <Link href="/suscripcion" className="mt-2 px-6 py-2 bg-primary text-white text-[10px] font-black rounded-lg uppercase tracking-widest shadow-lg shadow-primary/20">MEJORAR AHORA</Link>
+                        </div>
+                      )}
 
                       <div className="bg-white p-8 rounded-[38px] border border-slate-100 shadow-sm flex flex-col">
 
@@ -509,6 +551,10 @@ export default function Dashboard() {
             <div className="text-center mb-24">
               <h2 className="text-primary font-black text-sm uppercase tracking-[0.3em] mb-4">Planes SaaS</h2>
               <h3 className="text-4xl md:text-6xl font-black tracking-tight leading-none">ESCALA TU NEGOCIO</h3>
+              <p className="mt-8 text-slate-400 font-bold max-w-2xl mx-auto leading-relaxed uppercase text-sm tracking-widest">
+                <span className="text-primary">15 DÍAS DE PRUEBA GRATIS.</span><br/>
+                Acceso <span className="text-white">TOTAL</span> a todas las funciones del Plan Full desde el primer segundo, elijas la opción que elijas.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto">
@@ -518,7 +564,9 @@ export default function Dashboard() {
                 <h4 className="text-3xl font-black mb-1 uppercase tracking-tighter">STARTUP</h4>
                 <p className="text-[13px] font-medium text-slate-500 mb-6 uppercase tracking-wider italic">Digitaliza tu operación por el costo de 1 m³ de Estabilizado Bajo 3"</p>
                 <div className="flex items-baseline gap-2 mb-10">
-                  <span className="text-6xl font-black text-white">$29.990</span>
+                  <span className="text-6xl font-black text-white">
+                    {loadingPricing ? '...' : `$${pricing.startup.toLocaleString('es-CL')}`}
+                  </span>
                   <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">/ Mes</span>
                 </div>
                 <ul className="space-y-5 mb-12 flex-1">
@@ -537,7 +585,9 @@ export default function Dashboard() {
                 <span className="text-primary font-black tracking-widest uppercase text-[10px] mb-8">PROFESIONAL</span>
                 <h4 className="text-3xl font-black mb-2 uppercase tracking-tighter">FULL</h4>
                 <div className="flex items-baseline gap-2 mb-10">
-                  <span className="text-6xl font-black text-white">$79.990</span>
+                  <span className="text-6xl font-black text-white">
+                    {loadingPricing ? '...' : `$${pricing.full.toLocaleString('es-CL')}`}
+                  </span>
                   <span className="text-primary font-bold uppercase text-[12px] tracking-widest">/ MES ACCESO TOTAL</span>
                 </div>
                 <ul className="space-y-5 mb-12 flex-1">
@@ -717,12 +767,14 @@ export default function Dashboard() {
               >
                 Semana Actual
               </button>
-              <button
-                onClick={handleExport}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                Exportar
-              </button>
+              {effectivePlan === 'Full' && (
+                <button
+                  onClick={handleExport}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Exportar
+                </button>
+              )}
             </div>
           </div>
           <div className="flex items-end justify-between h-64 px-4">

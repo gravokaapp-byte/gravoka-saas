@@ -6,9 +6,11 @@ export interface SaaSStats {
   empresasActivas: number;
   mrrEstimado: number; // Monthly Recurring Revenue
   planes: {
-    Básico: number;
-    Pro: number;
-    Enterprise: number;
+    Startup: number;
+    Full: number;
+    Básico?: number; // Keep for legacy compatibility during transition
+    Pro?: number;
+    Enterprise?: number;
   };
 }
 
@@ -18,7 +20,9 @@ export async function getSaaSGlobalStats(): Promise<SaaSStats> {
   let total = 0;
   let activas = 0;
   let mrr = 0;
-  const planes = {
+  const planes: any = {
+    Startup: 0,
+    Full: 0,
     Básico: 0,
     Pro: 0,
     Enterprise: 0
@@ -26,8 +30,10 @@ export async function getSaaSGlobalStats(): Promise<SaaSStats> {
 
   const precios: { [key: string]: number } = {
     'Básico': 29990,
-    'Pro': 49990,
-    'Enterprise': 99990
+    'Startup': 29990,
+    'Pro': 79990,
+    'Enterprise': 79990,
+    'Full': 79990
   };
 
   querySnapshot.forEach((doc) => {
@@ -36,11 +42,11 @@ export async function getSaaSGlobalStats(): Promise<SaaSStats> {
     
     if (data.estado === 'activo') {
       activas++;
-      const plan = data.plan_activo || 'Pro';
-      mrr += precios[plan] || 49990;
+      const plan = data.plan_activo || 'Full';
+      mrr += precios[plan] || 79990;
       
       if (plan in planes) {
-        planes[plan as keyof typeof planes]++;
+        planes[plan]++;
       }
     }
   });

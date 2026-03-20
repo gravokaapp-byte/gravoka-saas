@@ -15,17 +15,22 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean, setIs
     { href: '/admin/configuracion', icon: 'settings_suggest', label: 'Configuración SaaS' },
   ];
 
+  const { effectivePlan } = useAuth();
+
   const clientLinks = [
     { href: '/', icon: 'dashboard', label: 'Dashboard' },
     { href: '/clientes', icon: 'group', label: 'Clientes' },
     { href: '/materiales', icon: 'inventory_2', label: 'Materiales' },
     { href: '/camiones', icon: 'local_shipping', label: 'Camiones' },
     { href: '/guias', icon: 'description', label: 'Guías' },
-    { href: '/reportes', icon: 'bar_chart', label: 'Reportes' },
-    { href: '/configuracion', icon: 'settings', label: 'Configuración' },
+    ...(effectivePlan === 'Full' ? [{ href: '/reportes', icon: 'bar_chart', label: 'Reportes' }] : []),
+    { href: '/configuracion', icon: 'settings', label: effectivePlan === 'Full' ? 'Personalización' : 'Mi Empresa' },
   ];
 
-  const links = profile?.rol === 'superadmin' ? superadminLinks : clientLinks;
+  // Prevent flash of client links for superadmins or during loading
+  if (!profile?.rol) return null;
+
+  const links = profile.rol === 'superadmin' ? superadminLinks : clientLinks;
 
   return (
     <>

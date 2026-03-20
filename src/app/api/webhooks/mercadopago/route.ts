@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { adminDb } from '@/lib/firebase/admin';
 import { logToDb } from '@/lib/logger';
+import { sendPaymentSuccessEmail } from '@/lib/mail';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,8 @@ export async function POST(request: Request) {
 
        if (paymentInfo.status === 'approved') {
           const empresaId = paymentInfo.metadata?.empresa_id;
+          const userEmail = paymentInfo.metadata?.email;
+          const paidPlan = paymentInfo.metadata?.plan || 'Full';
           
           if (empresaId) {
              if (!adminDb) {
@@ -37,8 +40,10 @@ export async function POST(request: Request) {
              await adminDb.collection('empresas').doc(empresaId.toString()).update({
                 estado: 'activo',
                 fecha_vencimiento: nextMonth,
-                plan_actual: paymentInfo.metadata?.plan || 'pro',
-                ultimo_pago_id: paymentInfo.id
+                plan_activo: paidPlan,
+                es_trial: false,
+                ultimo_pago_id: paymentInfo.id,
+                ultimo_pago_fecha: new Date()
              });
              
              // --- NOTIFICACIÓN PARA MANUEL (SUPERADMIN) ---
@@ -49,17 +54,22 @@ export async function POST(request: Request) {
                await adminDb.collection('notificaciones_saas').add({
                   type: 'payment_success',
                   title: '¡Pago Recibido! 💰',
-                  message: `La empresa ${empresaNombre} ha renovado su plan.`,
+                  message: `La empresa ${empresaNombre} ha renovado su plan (${paidPlan}).`,
                   read: false,
                   createdAt: new Date().toISOString(),
                   isSuperAdmin: true,
-                  metadata: { empresaId, paymentId }
+                  metadata: { empresaId, paymentId, plan: paidPlan }
                });
-             } catch (nError) {
+
+                // --- ENVIAR CORREO DE CONFIRMACIÓN (v11.1) ---
+                if (userEmail) {
+                  await sendPaymentSuccessEmail(userEmail, empresaNombre, paidPlan);
+                }
+              } catch (nError) {
                console.error('Error al notificar pago:', nError);
              }
              
-             await logToDb('webhook_success', `Empresa ${empresaId} activada exitosamente`, { paymentId });
+             await logToDb('webhook_success', `Empresa ${empresaId} activada exitosamente`, { paymentId, plan: paidPlan });
              return NextResponse.json({ success: true, message: 'Tenant activado' }, { status: 200 });
           } else {
              await logToDb('webhook_warning', 'Pago aprobado pero sin empresa_id', { paymentId });

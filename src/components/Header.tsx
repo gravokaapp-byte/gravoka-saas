@@ -59,7 +59,7 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>
             <span className="text-[10px] font-black text-primary uppercase tracking-tighter">
-              {Math.ceil((new Date(profile.fecha_vencimiento).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} días de Prueba Full
+              {Math.floor((new Date(profile.fecha_vencimiento).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} días de Prueba Full
             </span>
           </div>
         )}

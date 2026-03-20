@@ -78,8 +78,14 @@ export default function ConfigPage() {
       <main className="px-4 md:px-10 py-12 max-w-[1000px] mx-auto w-full">
         
         <div className="flex flex-col gap-2 mb-10">
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Configuración</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-lg">Personaliza el comportamiento de Gravoka para tu empresa.</p>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+            {effectivePlan === 'Full' ? 'Personalización' : 'Mi Empresa'}
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-lg">
+            {effectivePlan === 'Full' 
+              ? 'Personaliza la identidad y comportamiento de tu plataforma profesional.' 
+              : 'Información básica de tu punto de despacho.'}
+          </p>
         </div>
 
         <form onSubmit={handleSave} className="space-y-8">
@@ -95,8 +101,9 @@ export default function ConfigPage() {
                 <input 
                   type="text" 
                   value={config.nombre_empresa}
+                  disabled={effectivePlan === 'Startup'}
                   onChange={(e) => setConfig({...config, nombre_empresa: e.target.value})}
-                  className="bg-slate-50 dark:bg-slate-800 border-none rounded-2xl h-14 px-5 font-bold"
+                  className="bg-slate-50 dark:bg-slate-800 border-none rounded-2xl h-14 px-5 font-bold disabled:opacity-50"
                   placeholder="Ej: Gravoka Áridos SpA"
                 />
               </div>
@@ -105,8 +112,9 @@ export default function ConfigPage() {
                 <input 
                   type="text" 
                   value={config.rut}
+                  disabled={effectivePlan === 'Startup'}
                   onChange={(e) => setConfig({...config, rut: e.target.value})}
-                  className="bg-slate-50 dark:bg-slate-800 border-none rounded-2xl h-14 px-5 font-bold"
+                  className="bg-slate-50 dark:bg-slate-800 border-none rounded-2xl h-14 px-5 font-bold disabled:opacity-50"
                   placeholder="77.XXX.XXX-X"
                 />
               </div>
@@ -141,8 +149,9 @@ export default function ConfigPage() {
                   <input 
                     type="text" 
                     value={config.direccion}
+                    disabled={effectivePlan === 'Startup'}
                     onChange={(e) => setConfig({...config, direccion: e.target.value})}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl h-14 pl-14 pr-5 font-bold"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl h-14 pl-14 pr-5 font-bold disabled:opacity-50"
                     placeholder="Calle #Número, Comuna, Región"
                   />
                 </div>
@@ -164,8 +173,9 @@ export default function ConfigPage() {
                 <input 
                   type="checkbox" 
                   checked={config.notificar_ventas_grandes}
+                  disabled={effectivePlan === 'Startup'}
                   onChange={(e) => setConfig({...config, notificar_ventas_grandes: e.target.checked})}
-                  className="size-6 accent-primary rounded-lg border-none"
+                  className="size-6 accent-primary rounded-lg border-none disabled:opacity-50"
                 />
               </div>
               {config.notificar_ventas_grandes && (
@@ -174,8 +184,9 @@ export default function ConfigPage() {
                   <input 
                     type="number" 
                     value={config.monto_notificacion}
+                    disabled={effectivePlan === 'Startup'}
                     onChange={(e) => setConfig({...config, monto_notificacion: parseInt(e.target.value)})}
-                    className="bg-slate-50 dark:bg-slate-800 border-none rounded-2xl h-14 px-5 font-bold"
+                    className="bg-slate-50 dark:bg-slate-800 border-none rounded-2xl h-14 px-5 font-bold disabled:opacity-50"
                     placeholder="1000000"
                   />
                 </div>
@@ -196,11 +207,11 @@ export default function ConfigPage() {
             <div className="flex-1" />
             <button 
               type="submit"
-              disabled={saving}
+              disabled={saving || effectivePlan === 'Startup'}
               className="flex items-center gap-3 px-10 py-5 bg-primary text-white rounded-2xl font-black shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
             >
               <Save className={`size-6 ${saving ? 'animate-spin' : ''}`} />
-              {saving ? 'Guardando...' : 'Guardar Cambios'}
+              {saving ? 'Guardando...' : (effectivePlan === 'Startup' ? 'BLOQUEADO' : 'Guardar Cambios')}
             </button>
           </div>
 

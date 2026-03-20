@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
@@ -28,7 +29,8 @@ import {
 } from 'lucide-react';
 
 export default function ReportesPage() {
-  const { profile, effectivePlan } = useAuth();
+  const { profile, effectivePlan, loading } = useAuth();
+  const router = useRouter();
   const [guias, setGuias] = useState<GuiaData[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +40,12 @@ export default function ReportesPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!loading && effectivePlan !== 'Full') {
+      router.push('/');
+    }
+  }, [loading, effectivePlan, router]);
   
   const [timeRange, setTimeRange] = useState<'dia' | 'semana' | 'mes' | 'todos'>('todos');
   const [statusFilter, setStatusFilter] = useState('Todos');
@@ -189,15 +197,14 @@ export default function ReportesPage() {
 
         {/* KPI Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <StatCard title="Ventas Totales" value={formatCurrency(stats.summary.revenue)} icon={<Circle className="text-primary" />} trend="+12.5% vs ayer" />
-          <StatCard title="M3 Despachados" value={`${stats.summary.volume.toFixed(1)} m³`} icon={<Package className="text-blue-500" />} trend="En meta" />
+          <StatCard title="Ventas Totales" value={formatCurrency(stats.summary.revenue)} icon={<Circle className="text-primary" />} />
+          <StatCard title="M3 Despachados" value={`${stats.summary.volume.toFixed(1)} m³`} icon={<Package className="text-blue-500" />} />
           <StatCard 
             title="Utilidad Neta" 
             value={effectivePlan === 'Startup' ? 'Plan Full' : formatCurrency(stats.summary.revenue - stats.summary.flete)} 
             icon={<CheckCircle2 className="text-emerald-500" />} 
-            trend={effectivePlan === 'Startup' ? 'Margen Protegido' : "Margen 84%"} 
           />
-          <StatCard title="Operaciones" value={stats.summary.operations.toString()} icon={<Truck className="text-orange-500" />} trend="Flujo constante" />
+          <StatCard title="Operaciones" value={stats.summary.operations.toString()} icon={<Truck className="text-orange-500" />} />
         </div>
 
         {/* Charts Row 1 */}
@@ -461,14 +468,16 @@ export default function ReportesPage() {
   );
 }
 
-function StatCard({ title, value, icon, trend }: { title: string, value: string, icon: any, trend: string }) {
+function StatCard({ title, value, icon, trend }: { title: string, value: string, icon: any, trend?: string }) {
   return (
     <div className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div className="size-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
           {icon}
         </div>
-        <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">{trend}</span>
+        {trend && (
+          <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">{trend}</span>
+        )}
       </div>
       <div>
         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{title}</p>

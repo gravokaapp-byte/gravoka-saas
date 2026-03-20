@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { sendWelcomeEmail, sendAdminRegistrationAlert } from '@/lib/mail';
 
 export async function POST(request: Request) {
   try {
-    const { empresaNombre, rut, adminEmail, adminPassword } = await request.json();
+    const { empresaNombre, rut, adminEmail, adminPassword, plan } = await request.json();
+    const planDeseado = plan || 'Startup';
 
     if (!empresaNombre || !adminEmail || !adminPassword) {
       return NextResponse.json({ success: false, error: 'Campos faltantes' }, { status: 400 });
     }
 
     // 1. Crear la Empresa (Tenant) con 15 días de TRIAL FULL
+    // Pero guardamos plan_deseado para saber qué pasa cuando acabe el trial
     const fechaVencimiento = new Date();
     fechaVencimiento.setDate(fechaVencimiento.getDate() + 15);
 
@@ -17,6 +20,7 @@ export async function POST(request: Request) {
       nombre: empresaNombre,
       rut: rut || 'N/A',
       plan_activo: 'Full',
+      plan_deseado: planDeseado,
       es_trial: true,
       estado: 'activo',
       creado_en: new Date().toISOString(),
@@ -48,6 +52,14 @@ export async function POST(request: Request) {
       isSuperAdmin: true,
       metadata: { empresaId: empresaRef.id, email: adminEmail }
     });
+
+    // 5. ENVIAR CORREOS (v11.1)
+    try {
+      await sendWelcomeEmail(adminEmail, empresaNombre);
+      await sendAdminRegistrationAlert(empresaNombre, adminEmail);
+    } catch (mailError) {
+      console.error('Error al enviar correos de bienvenida:', mailError);
+    }
 
     return NextResponse.json({ success: true, message: 'Registro exitoso' });
 

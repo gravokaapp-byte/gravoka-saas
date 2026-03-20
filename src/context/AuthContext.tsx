@@ -11,6 +11,7 @@ export interface UserProfile {
   rol?: string;
   nombre?: string;
   plan_activo?: 'Startup' | 'Full';
+  plan_deseado?: 'Startup' | 'Full';
   fecha_vencimiento?: string | null;
   es_trial?: boolean;
 }
@@ -68,6 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                    fetchedProfile = {
                       ...fetchedProfile,
                       plan_activo: fetchedEmpresaData.plan_activo,
+                      plan_deseado: fetchedEmpresaData.plan_deseado,
                       fecha_vencimiento: fetchedEmpresaData.fecha_vencimiento,
                       es_trial: fetchedEmpresaData.es_trial
                    };
@@ -111,7 +113,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // SaaS Paywall Logic (Block suspended/inactive tenants)
-      if (fetchedEmpresaData && fetchedEmpresaData.estado !== 'activo') {
+      if (fetchedEmpresaData && fetchedEmpresaData.status !== 'activo' && fetchedEmpresaData.estado !== 'activo') {
         // If they are not active, they can ONLY visit the subscription page (or login/API routes)
         if (pathname !== '/suscripcion' && !pathname.startsWith('/api')) {
           console.warn('Redirecting inactive tenant to /suscripcion');
@@ -166,7 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isPublicPath = publicPaths.includes(pathname);
   
   const effectivePlan = (profile?.plan_activo === 'Full' && profile?.fecha_vencimiento) 
-    ? (new Date(profile.fecha_vencimiento) > new Date() ? 'Full' : 'Startup')
+    ? (new Date(profile.fecha_vencimiento) > new Date() ? 'Full' : (profile?.plan_deseado || 'Startup'))
     : profile?.plan_activo || 'Startup';
 
   if (!user && !isPublicPath) {
