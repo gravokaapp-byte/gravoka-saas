@@ -9,6 +9,16 @@ export async function POST(request: Request) {
     const { empresaNombre, rut, adminEmail, adminPassword, plan } = await request.json();
     const planDeseado = plan || 'Startup';
 
+    console.log('[DEBUG] Intento de registro:', { empresaNombre, adminEmail, planDeseado });
+
+    if (!adminAuth || !adminDb) {
+      console.error('[DEBUG] Firebase Admin no inicializado.');
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Servicio no disponible temporalmente (Firebase Error)' 
+      }, { status: 503 });
+    }
+
     if (!empresaNombre || !adminEmail || !adminPassword) {
       return NextResponse.json({ success: false, error: 'Campos faltantes' }, { status: 400 });
     }

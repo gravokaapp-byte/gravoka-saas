@@ -21,11 +21,13 @@ if (!admin.apps.length) {
     try {
       const potentialJson = JSON.parse(privateKeyFromEnv);
       if (potentialJson.private_key) {
+        console.log('[DEBUG] Firebase Key detectada como JSON.');
         finalKey = potentialJson.private_key;
       } else {
         throw new Error('JSON without private_key');
       }
     } catch (e) {
+      console.log('[DEBUG] Firebase Key tratada como PEM string.');
       // 2. No es JSON, proceder con limpieza PEM
       // Extraemos solo el cuerpo base64, eliminando cabeceras, escapes Y saltos de línea reales
       const bodyOnly = privateKeyFromEnv
