@@ -40,7 +40,7 @@ export const processBIStats = (guias: GuiaData[]) => {
   // 2. Top Clientes (M3, Ganancia y Margen)
   const clientStats: Record<string, { m3: number, ganancia: number, freight: number, margin: number }> = {};
   filteredGuias.forEach(g => {
-    const key = g.cliente_nombre || 'Desconocido';
+    const key = g.cliente_nombre || 'S/N';
     if (!clientStats[key]) clientStats[key] = { m3: 0, ganancia: 0, freight: 0, margin: 0 };
     const freight = g.flete_costo || 0;
     const ganancia = g.total_estimado - freight;
@@ -57,7 +57,7 @@ export const processBIStats = (guias: GuiaData[]) => {
   // 3. Top Productos (M3)
   const productStats: Record<string, number> = {};
   filteredGuias.forEach(g => {
-    const key = g.material_nombre || 'Desconocido';
+    const key = g.material_nombre || 'S/N';
     if (!productStats[key]) productStats[key] = 0;
     productStats[key] += g.cantidad;
   });

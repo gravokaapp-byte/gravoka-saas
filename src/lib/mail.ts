@@ -49,7 +49,7 @@ export const sendAdminRegistrationAlert = async (empresaNombre: string, adminEma
   const resend = getResend();
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Sistema Gravoka <alertas@tecno-artificial.com>',
+      from: 'Gravoka <soporte@tecno-artificial.com>',
       to: ['mvaldes@tecno-artificial.com'],
       subject: `🔔 Nuevo Registro: ${empresaNombre}`,
       html: `

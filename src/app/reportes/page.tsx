@@ -41,11 +41,14 @@ export default function ReportesPage() {
     setIsMounted(true);
   }, []);
 
+  // Plan redirect removed to allow testing/access as requested.
+  /*
   useEffect(() => {
     if (!loading && effectivePlan !== 'Full') {
       router.push('/');
     }
   }, [loading, effectivePlan, router]);
+  */
   
   const [timeRange, setTimeRange] = useState<'dia' | 'semana' | 'mes' | 'todos'>('todos');
   const [statusFilter, setStatusFilter] = useState('Todos');
@@ -62,7 +65,11 @@ export default function ReportesPage() {
     });
 
     const qClients = query(collection(db, 'clientes'), where('empresa_id', '==', profile.empresa_id));
+    const clientNames: Record<string, string> = {};
     const unsubClients = onSnapshot(qClients, (snapshot) => {
+      snapshot.docs.forEach(doc => {
+        clientNames[doc.id] = doc.data().name;
+      });
       setClients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
@@ -73,7 +80,15 @@ export default function ReportesPage() {
     );
     
     const unsubGuias = onSnapshot(qGuias, (snapshot) => {
-      setGuias(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as GuiaData[]);
+      setGuias(snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          ...data, 
+          id: doc.id,
+          cliente_nombre: data.cliente_nombre || clientNames[data.cliente_id] || (data.cliente_id !== 'esporadico' ? data.cliente_id : 'Cliente Ocasional'),
+          material_nombre: data.material_nombre || data.material || 'S/N'
+        } as GuiaData;
+      }));
       setIsLoading(false);
     });
 
@@ -104,7 +119,7 @@ export default function ReportesPage() {
   const exportToExcel = () => {
     const data = filteredGuias.map(g => ({
       'N° Guía': g.numero_guia ? g.numero_guia.toString().padStart(6, '0') : 'N/A',
-      'Folio Sist.': g.id.slice(-6).toUpperCase(),
+      ID: g.id,
       Fecha: g.creado_en?.toDate().toLocaleString('es-CL') || 'N/A',
       Cliente: g.cliente_nombre,
       Material: g.material_nombre,

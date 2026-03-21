@@ -67,8 +67,11 @@ export async function POST(request: Request) {
 
     // 5. ENVIAR CORREOS (v11.1)
     try {
-      await sendWelcomeEmail(adminEmail, empresaNombre);
-      await sendAdminRegistrationAlert(empresaNombre, adminEmail);
+      const welcomeRes = await sendWelcomeEmail(adminEmail, empresaNombre);
+      const adminRes = await sendAdminRegistrationAlert(empresaNombre, adminEmail);
+      console.log('[DEBUG] Resultados de emails:', { welcome: welcomeRes.success, admin: adminRes.success });
+      if (!welcomeRes.success) console.error('[DEBUG] Error bienvenida:', welcomeRes.error);
+      if (!adminRes.success) console.error('[DEBUG] Error alerta admin:', adminRes.error);
     } catch (mailError) {
       console.error('Error al enviar correos de bienvenida:', mailError);
     }

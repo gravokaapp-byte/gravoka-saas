@@ -33,12 +33,19 @@ export default function GuiasPage() {
   const [camiones, setCamiones] = useState<Camion[]>([]);
   
   const [selectedClientId, setSelectedClientId] = useState('');
+  const [manualClientName, setManualClientName] = useState('');
+  const [ordenCompra, setOrdenCompra] = useState('');
   const [selectedMaterialId, setSelectedMaterialId] = useState('');
+  const [manualPrice, setManualPrice] = useState('');
   const [selectedCamionId, setSelectedCamionId] = useState('');
+  const [manualPatente, setManualPatente] = useState('');
+  const [manualConductor, setManualConductor] = useState('');
+  const [nroFactura, setNroFactura] = useState('');
   
   const [quantity, setQuantity] = useState('');
   const [obra, setObra] = useState('Despacho Directo');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
+  const [documentType, setDocumentType] = useState<'guia' | 'factura' | 'boleta'>('guia');
   const [isProcessing, setIsProcessing] = useState(false);
   const [config, setConfig] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
@@ -90,11 +97,17 @@ export default function GuiasPage() {
     [materials, selectedMaterialId]
   );
 
+  useEffect(() => {
+    if (selectedMaterial) {
+      setManualPrice(selectedMaterial.precio_unitario.toString());
+    }
+  }, [selectedMaterial]);
+
   const total = useMemo(() => {
-    const price = selectedMaterial?.precio_unitario || 0;
+    const price = parseFloat(manualPrice) || 0;
     const qty = parseFloat(quantity) || 0;
     return price * qty;
-  }, [selectedMaterial, quantity]);
+  }, [manualPrice, quantity]);
 
   const [fleteCost, setFleteCost] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -112,8 +125,15 @@ export default function GuiasPage() {
   }, [guiaNumero]);
 
   const handleEmitir = async () => {
-    if (!selectedClientId || !selectedMaterialId || !quantity || !paymentMethod || !selectedCamionId) {
-      alert('Por favor complete todos los campos obligatorios incluyendo cliente, camión y material.');
+    const isEsporadico = selectedClientId === 'esporadico';
+    const finalClientName = isEsporadico ? manualClientName : clients.find(c => c.id === selectedClientId)?.name;
+
+    const isCamionEsporadico = selectedCamionId === 'esporadico';
+    const finalPatente = isCamionEsporadico ? manualPatente : camiones.find(c => c.id === selectedCamionId)?.patente;
+    const finalConductor = isCamionEsporadico ? manualConductor : camiones.find(c => c.id === selectedCamionId)?.conductor_nombre;
+
+    if (!selectedClientId || (isEsporadico && !manualClientName) || !selectedMaterialId || !quantity || !paymentMethod || !selectedCamionId || (isCamionEsporadico && !manualPatente)) {
+      alert('Por favor complete todos los campos obligatorios incluyendo cliente, patente del camión y material.');
       return;
     }
 
@@ -141,17 +161,23 @@ export default function GuiasPage() {
           empresa_id: profile.empresa_id,
           numero_guia: nextNumero,
           cliente_id: selectedClientId,
-          cliente_nombre: clients.find(c => c.id === selectedClientId)?.name || 'Anónimo',
+          cliente_nombre: finalClientName || 'Anónimo',
+          es_esporadico: isEsporadico,
+          orden_compra: ordenCompra,
           material_id: selectedMaterialId,
           material_nombre: selectedMaterial?.nombre,
+          precio_unitario_aplicado: parseFloat(manualPrice),
+          tipo_documento: documentType,
           cantidad: parseFloat(quantity),
           obra: obra,
           metodo_pago: paymentMethod,
           total_estimado: total,
           flete_costo: parseFloat(fleteCost) || 0,
+          nro_factura: nroFactura,
           camion_id: selectedCamionId,
-          camion_patente: selectedCamion?.patente,
-          conductor_nombre: selectedCamion?.conductor_nombre,
+          camion_patente: finalPatente,
+          conductor_nombre: finalConductor,
+          es_camion_esporadico: isCamionEsporadico,
           creado_en: serverTimestamp(),
           estado: 'Emitida'
         });
@@ -166,12 +192,19 @@ export default function GuiasPage() {
       // Reset form after a considerable delay
       setTimeout(() => {
         setSelectedClientId('');
+        setManualClientName('');
+        setOrdenCompra('');
         setSelectedMaterialId('');
+        setManualPrice('');
         setSelectedCamionId('');
+        setManualPatente('');
+        setManualConductor('');
+        setNroFactura('');
         setQuantity('');
         setFleteCost('');
         setObra('Despacho Directo');
         setPaymentMethod(null);
+        setDocumentType('guia');
         setGuiaNumero(null);
       }, 5000);
 
@@ -213,10 +246,35 @@ export default function GuiasPage() {
                       className="h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-lg font-semibold focus:border-primary focus:ring-0"
                     >
                       <option value="">Buscar Cliente...</option>
+                      <option value="esporadico" className="text-primary font-bold">-- CLIENTE OCASIONAL --</option>
                       {clients.map(client => (
                         <option key={client.id} value={client.id}>{client.name}</option>
                       ))}
                     </select>
+                  </label>
+                  
+                  {selectedClientId === 'esporadico' && (
+                    <label className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                       <span className="text-sm font-bold text-primary">NOMBRE CLIENTE OCASIONAL</span>
+                       <input
+                        type="text"
+                        value={manualClientName}
+                        onChange={(e) => setManualClientName(e.target.value)}
+                        placeholder="Ingrese nombre del cliente..."
+                        className="h-14 w-full rounded-xl border-2 border-primary bg-primary/5 px-4 text-base font-semibold focus:ring-0"
+                      />
+                    </label>
+                  )}
+
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">ORDEN DE COMPRA (O.C.)</span>
+                    <input
+                      type="text"
+                      value={ordenCompra}
+                      onChange={(e) => setOrdenCompra(e.target.value)}
+                      placeholder="Nro de Orden o Referencia"
+                      className="h-14 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-base font-semibold focus:border-primary focus:ring-0"
+                    />
                   </label>
                   <label className="flex flex-col gap-2">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">CAMIÓN / PATENTE</span>
@@ -225,12 +283,38 @@ export default function GuiasPage() {
                       onChange={(e) => setSelectedCamionId(e.target.value)}
                       className="h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-lg font-semibold focus:border-primary focus:ring-0"
                     >
-                      <option value="">Seleccionar Camión...</option>
+                      <option value="">Buscar Camión...</option>
+                      <option value="esporadico" className="text-primary font-bold">-- CAMIÓN OCASIONAL --</option>
                       {camiones.map(c => (
                         <option key={c.id} value={c.id}>{c.patente} [{c.conductor_nombre}]</option>
                       ))}
                     </select>
                   </label>
+
+                  {selectedCamionId === 'esporadico' && (
+                    <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                       <label className="flex flex-col gap-2">
+                        <span className="text-sm font-bold text-primary">PATENTE CAMIÓN</span>
+                        <input
+                          type="text"
+                          value={manualPatente}
+                          onChange={(e) => setManualPatente(e.target.value)}
+                          placeholder="ABCD-12"
+                          className="h-14 w-full rounded-xl border-2 border-primary bg-primary/5 px-4 text-base font-semibold focus:ring-0"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2">
+                        <span className="text-sm font-bold text-primary">NOMBRE CONDUCTOR</span>
+                        <input
+                          type="text"
+                          value={manualConductor}
+                          onChange={(e) => setManualConductor(e.target.value)}
+                          placeholder="Nombre del chofer"
+                          className="h-14 w-full rounded-xl border-2 border-primary bg-primary/5 px-4 text-base font-semibold focus:ring-0"
+                        />
+                      </label>
+                    </div>
+                  )}
                   <label className="flex flex-col gap-2">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">OBRA / DESTINO</span>
                     <input
@@ -276,6 +360,16 @@ export default function GuiasPage() {
                       />
                     </label>
                     <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-slate-700 dark:text-slate-300">PRECIO UNIT. ($)</span>
+                      <input 
+                        type="number" 
+                        value={manualPrice}
+                        onChange={(e) => setManualPrice(e.target.value)}
+                        placeholder="0"
+                        className="h-14 md:h-16 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-xl md:text-2xl font-bold text-slate-600 dark:text-slate-300 focus:border-primary focus:ring-0" 
+                      />
+                    </label>
+                    <label className="flex flex-col gap-2 col-span-2 md:col-span-1">
                       <span className="text-sm font-bold text-slate-700 dark:text-slate-300">COSTO FLETE ($)</span>
                       <input 
                         type="number" 
@@ -335,6 +429,38 @@ export default function GuiasPage() {
                     <span className="material-symbols-outlined text-3xl">account_balance</span>
                     <span>BANCO / TRANSF.</span>
                   </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex flex-col gap-4">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">TIPO DE DOCUMENTO</span>
+                    <div className="flex gap-2">
+                      {['guia', 'factura', 'boleta'].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => setDocumentType(type as any)}
+                          className={`flex-1 py-3 rounded-lg border-2 text-[10px] font-black uppercase transition-all ${
+                            documentType === type 
+                              ? 'border-primary bg-primary text-white' 
+                              : 'border-slate-200 dark:border-slate-700 text-slate-400'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">NRO FACTURA (OPCIONAL)</span>
+                    <input
+                      type="text"
+                      value={nroFactura}
+                      onChange={(e) => setNroFactura(e.target.value)}
+                      placeholder="Factura asociada..."
+                      className="h-14 w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-base font-semibold focus:border-primary focus:ring-0"
+                    />
+                  </label>
                 </div>
               </div>
 
@@ -408,13 +534,14 @@ export default function GuiasPage() {
                 <div className="grid grid-cols-2 gap-8 my-6">
                   <div className="border p-3 rounded bg-slate-50">
                     <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Cliente</h4>
-                    <p className="font-black text-md uppercase">{clients.find(c => c.id === selectedClientId)?.name}</p>
+                    <p className="font-black text-md uppercase">{selectedClientId === 'esporadico' ? manualClientName : clients.find(c => c.id === selectedClientId)?.name}</p>
                     <p className="text-[10px]"><b>OBRA:</b> {obra}</p>
+                    {ordenCompra && <p className="text-[10px]"><b>O.C.:</b> {ordenCompra}</p>}
                   </div>
                   <div className="border p-3 rounded bg-slate-50">
                     <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Transporte</h4>
-                    <p className="text-[11px]"><b>PATENTE:</b> {camiones.find(c => c.id === selectedCamionId)?.patente}</p>
-                    <p className="text-[11px]"><b>CONDUCTOR:</b> {camiones.find(c => c.id === selectedCamionId)?.conductor_nombre}</p>
+                    <p className="text-[11px] uppercase"><b>PATENTE:</b> {selectedCamionId === 'esporadico' ? manualPatente : camiones.find(c => c.id === selectedCamionId)?.patente}</p>
+                    <p className="text-[11px] uppercase"><b>CONDUCTOR:</b> {selectedCamionId === 'esporadico' ? manualConductor : camiones.find(c => c.id === selectedCamionId)?.conductor_nombre}</p>
                     <p className="text-[11px]"><b>FECHA/HORA:</b> {new Date().toLocaleString()}</p>
                   </div>
                 </div>
@@ -429,12 +556,21 @@ export default function GuiasPage() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="border p-3 text-sm font-bold uppercase">{selectedMaterial?.nombre}</td>
+                      <td className="border p-3 text-sm font-bold uppercase">
+                        {selectedMaterial?.nombre}
+                        <div className="text-[9px] text-slate-400 font-medium">P. UNIT: {formatCurrency(parseFloat(manualPrice) || 0)}</div>
+                      </td>
                       <td className="border p-3 text-center text-lg font-black">{quantity} m³</td>
                       <td className="border p-3 text-right text-md font-black">{formatCurrency(total)}</td>
                     </tr>
                   </tbody>
                 </table>
+
+                {nroFactura && (
+                  <div className="mt-4 p-2 border-2 border-primary/30 rounded text-center">
+                    <p className="text-[10px] font-black text-primary uppercase">Documento Associado Nro: {nroFactura}</p>
+                  </div>
+                )}
 
                 <div className="flex justify-between items-end mt-4">
                   <div className="flex flex-col gap-1 text-[9px] opacity-70">

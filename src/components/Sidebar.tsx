@@ -23,7 +23,7 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean, setIs
     { href: '/materiales', icon: 'inventory_2', label: 'Materiales' },
     { href: '/camiones', icon: 'local_shipping', label: 'Camiones' },
     { href: '/guias', icon: 'description', label: 'Guías' },
-    ...(effectivePlan === 'Full' ? [{ href: '/reportes', icon: 'bar_chart', label: 'Reportes' }] : []),
+    { href: '/reportes', icon: 'bar_chart', label: 'Reportes' },
     { href: '/configuracion', icon: 'settings', label: effectivePlan === 'Full' ? 'Personalización' : 'Mi Empresa' },
   ];
 

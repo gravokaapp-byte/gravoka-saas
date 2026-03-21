@@ -18,7 +18,10 @@ interface Guia {
   id: string;
   numero_guia?: number;
   cliente_id: string;
+  cliente_nombre?: string;
+  es_esporadico?: boolean;
   material: string;
+  material_nombre?: string;
   cantidad: number;
   total_estimado: number;
   estado: string;
@@ -159,8 +162,8 @@ export default function Dashboard() {
     // Preparar datos para Excel
     const data = weeklyGuias.map(g => ({
       'ID Guía': g.id,
-      'Cliente': clientNames[g.cliente_id] || 'Cargando...',
-      'Material': g.material,
+      'Cliente': g.cliente_nombre || clientNames[g.cliente_id] || (g.cliente_id !== 'esporadico' ? g.cliente_id : 'Cliente Ocasional'),
+      'Material': g.material_nombre || g.material || 'S/N',
       'Cantidad (m3)': g.cantidad,
       'Total Estimado': g.total_estimado,
       'Estado': g.estado,
@@ -843,13 +846,15 @@ export default function Dashboard() {
                     </td>
                     <td className="px-4 md:px-6 py-4">
                       <div className="text-[10px] md:text-sm font-black text-slate-900 dark:text-white uppercase leading-tight truncate max-w-[120px] md:max-w-none">
-                        {clientNames[guia.cliente_id] || 'Cargando...'}
+                        {guia.cliente_nombre || clientNames[guia.cliente_id] || (guia.cliente_id !== 'esporadico' ? guia.cliente_id : 'Cliente Ocasional')}
                       </div>
                       <div className="sm:hidden text-[9px] text-slate-400 font-medium truncate max-w-[120px]">
-                        {guia.material}
+                        {guia.material_nombre || guia.material || 'S/N'}
                       </div>
                     </td>
-                    <td className="hidden sm:table-cell px-4 md:px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">{guia.material}</td>
+                    <td className="hidden sm:table-cell px-4 md:px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">
+                      {guia.material_nombre || guia.material || 'S/N'}
+                    </td>
                     <td className="px-2 md:px-6 py-4 text-xs md:text-sm text-center font-black text-primary italic bg-primary/5">{guia.cantidad}m³</td>
                     <td className="px-4 md:px-6 py-4 text-xs md:text-sm text-right font-black text-slate-900 dark:text-white whitespace-nowrap">
                       {formatCurrency(guia.total_estimado)}
