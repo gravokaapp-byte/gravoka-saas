@@ -31,6 +31,7 @@ import {
   List,
   TrendingUp
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 export default function ReportesPage() {
   const { profile, effectivePlan, loading } = useAuth();
@@ -867,6 +868,21 @@ function ReprintModal({ guia, config, profile, onClose, onPrintChange }: { guia:
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
   };
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handlePrint = () => {
+    // Pequeño delay para asegurar que el DOM se ha actualizado con los estilos de impresión
+    setTimeout(() => {
+      window.print();
+    }, 300);
+  };
+
+  if (!mounted) return null;
+
   return (
     <>
       {!showPreview ? (
@@ -893,119 +909,46 @@ function ReprintModal({ guia, config, profile, onClose, onPrintChange }: { guia:
         </div>
       ) : null}
 
-      <div className={`${showPreview ? 'fixed inset-0 overflow-y-auto bg-slate-100 z-[99999]' : 'hidden'} print:block print:static print:bg-white text-black print-container-root`}>
-        {showPreview && (
-          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100000] flex gap-3 no-print print:hidden bg-white/80 backdrop-blur-md p-3 rounded-2xl shadow-2xl border border-white">
+      {/* Vista Previa en Pantalla */}
+      {showPreview && (
+        <div className="fixed inset-0 overflow-y-auto bg-slate-100 z-[99999] no-print">
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100000] flex gap-3 bg-white/80 backdrop-blur-md p-3 rounded-2xl shadow-2xl border border-white">
             <button
-              onClick={() => window.print()}
-              className="px-6 py-3 rounded-xl bg-primary text-white font-bold shadow-xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all no-print print:hidden"
+              onClick={handlePrint}
+              className="px-6 py-3 rounded-xl bg-primary text-white font-bold shadow-xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"
             >
-              <Printer className="size-5 no-print" /> Imprimir Guía
+              <Printer className="size-5" /> Imprimir Guía
             </button>
             <button
               onClick={() => setShowPreview(false)}
-              className="px-6 py-3 rounded-xl bg-slate-800 text-white font-bold shadow-xl hover:bg-slate-900 transition-all no-print print:hidden"
+              className="px-6 py-3 rounded-xl bg-slate-800 text-white font-bold shadow-xl hover:bg-slate-900 transition-all"
             >
               Cerrar Previa
             </button>
           </div>
-        )}
-        
-        <div className="max-w-[21cm] mx-auto py-24 px-4 print:p-0 print:m-0 print:max-w-none">
-          {[
-            { label: 'COPIA CLIENTE', key: 'client' },
-            { label: 'COPIA INTERNA', key: 'internal' }
-          ].map((copy, index) => (
-          <div key={copy.key} className="reprint-copy p-10">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div className="flex gap-4 items-center">
-                {config?.logo_url ? (
-                  <img src={config.logo_url} alt="Logo" className="max-h-16 w-auto" />
-                ) : (
-                  <div className="size-16 rounded border flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 font-bold uppercase">Logo</div>
-                )}
-                <div className="flex flex-col">
-                  <h1 className="text-xl font-black uppercase text-slate-900 leading-tight">{config?.nombre_empresa || 'Gravoka SpA'}</h1>
-                  <p className="text-xs font-bold">{config?.rut || 'RUT 77.XXX.XXX-X'}</p>
-                  <p className="text-[10px] text-slate-500">{config?.direccion || 'Matriz de Operaciones'}</p>
-                </div>
+          
+          <div className="max-w-[21cm] mx-auto py-24 px-4 bg-white shadow-2xl my-8">
+            {copies.map((copy) => (
+              <div key={`preview-${copy.key}`} className="reprint-preview-copy mb-20 last:mb-0 border-b-2 border-dashed border-slate-200 pb-20 last:border-0 last:pb-0">
+                {/* Reutilizamos el mismo contenido para la previa */}
+                <PrintContent guia={guia} config={config} profile={profile} copyLabel={copy.label} copyKey={copy.key} formatCurrency={formatCurrency} />
               </div>
-              <div className="text-right border-2 border-red-500 p-3 rounded shrink-0 w-full sm:w-auto">
-                <h3 className="text-red-500 font-bold text-[10px] sm:text-xs uppercase">GUÍA DE DESPACHO ELECTRÓNICA</h3>
-                <p className="text-lg font-mono font-black italic underline decoration-red-500/30">N° {(guia.numero_guia || 0).toString().padStart(6, '0')}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-8 my-8 mt-6">
-              <div className="border p-4 rounded bg-slate-50 shadow-sm border-slate-200">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Cliente</h4>
-                <p className="font-black text-md uppercase text-slate-900 leading-tight">{guia.cliente_nombre}</p>
-                <p className="text-[11px] font-bold mt-1 uppercase text-slate-600"><b>OBRA:</b> {guia.obra || 'Despacho Directo'}</p>
-                <p className="text-[11px] font-bold uppercase text-slate-600"><b>O.C.:</b> {guia.orden_compra || '-'}</p>
-              </div>
-              <div className="border p-4 rounded bg-slate-50 shadow-sm border-slate-200">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Transporte</h4>
-                <p className="text-[11px] font-black text-slate-800 uppercase"><b>PATENTE:</b> {guia.camion_patente}</p>
-                <p className="text-[11px] font-black text-slate-800 uppercase mt-1"><b>CONDUCTOR:</b> {guia.conductor_nombre}</p>
-                <p className="text-[11px] font-black text-slate-800 mt-1 uppercase"><b>FECHA/HORA:</b> {guia.creado_en ? (typeof guia.creado_en.toDate === 'function' ? guia.creado_en.toDate().toLocaleString() : new Date(guia.creado_en).toLocaleString()) : new Date().toLocaleString()}</p>
-              </div>
-            </div>
-
-            <table className="w-full border-collapse border border-slate-300">
-              <thead>
-                <tr className="bg-slate-100/80">
-                  <th className="border-b-2 border-slate-300 border-r p-3 text-left text-[11px] font-black uppercase text-slate-600">Material</th>
-                  <th className="border-b-2 border-slate-300 border-r p-3 text-center text-[11px] font-black uppercase text-slate-600">Cantidad</th>
-                  <th className="border-b-2 border-slate-300 p-3 text-right text-[11px] font-black uppercase text-slate-600">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-slate-200">
-                  <td className="p-4 text-[15px] font-black uppercase text-slate-900 border-r border-slate-200">
-                    {guia.material_nombre}
-                    <div className="text-[10px] text-slate-400 font-bold mt-1">P. UNIT: {formatCurrency(guia.precio_unitario_aplicado || 0)}</div>
-                  </td>
-                  <td className="p-4 text-center text-2xl font-black text-slate-800 border-r border-slate-200">{guia.cantidad} m³</td>
-                  <td className="p-4 text-right text-xl font-black text-slate-900">{formatCurrency(guia.total_estimado)}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            {(guia.nro_factura || guia.factura) && (
-              <div className="mt-8 p-3 border-2 border-cyan-500/30 rounded-lg text-center bg-cyan-50/30">
-                <p className="text-sm font-black text-cyan-600 uppercase tracking-widest">Factura Asociada: {guia.nro_factura || guia.factura}</p>
-              </div>
-            )}
-
-            <div className="mt-auto pt-10">
-              <div className="flex justify-between items-end mb-8">
-                <div className="flex flex-col gap-1 text-[10px] text-slate-500 font-bold italic">
-                  <span>PAGO: {String(guia.metodo_pago || 'CREDITO').toUpperCase()}</span>
-                  <span>EMITIDO POR: {profile?.nombre || 'SISTEMA'}</span>
-                  <span>VERSION: GRAVOKA SaaS v4.5</span>
-                </div>
-                
-                <div className="flex gap-12 items-end">
-                  {copy.key === 'internal' && (
-                    <div className="text-center w-48 border-t-2 border-slate-900 pt-2 group">
-                      <p className="text-[10px] font-black uppercase text-slate-900">Recibe Conforme</p>
-                    </div>
-                  )}
-                  {copy.key === 'internal' && (
-                    <div className="text-center w-48 border-t-2 border-slate-900 pt-2">
-                      <p className="text-[10px] font-black uppercase text-slate-900">Entrega Conforme</p>
-                    </div>
-                  )}
-                  <div className="bg-slate-900 text-white px-5 py-2 text-xs font-black rounded-xl shadow-lg uppercase tracking-tight">
-                    {copy.label}
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
-          ))}
         </div>
-      </div>
+      )}
+
+      {/* Contenido Real de Impresión (Portal al Body) */}
+      {showPreview && createPortal(
+        <div className="print-container-root absolute top-0 left-0 w-full bg-white text-black hidden print:block">
+          {copies.map((copy) => (
+            <div key={`print-${copy.key}`} className="reprint-copy">
+              <PrintContent guia={guia} config={config} profile={profile} copyLabel={copy.label} copyKey={copy.key} formatCurrency={formatCurrency} />
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
 
       <style jsx global>{`
         @media print {
@@ -1016,33 +959,28 @@ function ReprintModal({ guia, config, profile, onClose, onPrintChange }: { guia:
           html, body {
             margin: 0 !important;
             padding: 0 !important;
-            width: 210mm !important;
             height: auto !important;
             background: white !important;
-            overflow: visible !important;
           }
-          /* Isolation strategy */
-          body > *:not(.print-container-root),
-          #__next > *:not(.print-container-root),
-          main > *:not(.print-container-root) {
+          
+          /* Aislamiento: Escondemos todo excepto el contenedor de impresión */
+          body > *:not(.print-container-root) {
             display: none !important;
           }
 
           .print-container-root {
-            visibility: visible !important;
             display: block !important;
             position: absolute !important;
             top: 0 !important;
             left: 0 !important;
             width: 210mm !important;
-            margin: 0 !important;
             z-index: 999999 !important;
           }
           
           .reprint-copy {
             width: 210mm !important;
-            height: 297mm !important; /* Full A4 height */
-            padding: 2cm !important;
+            min-height: 297mm !important;
+            padding: 1.5cm !important;
             display: flex !important;
             flex-direction: column !important;
             page-break-after: always !important;
@@ -1063,5 +1001,101 @@ function ReprintModal({ guia, config, profile, onClose, onPrintChange }: { guia:
         }
       `}</style>
     </>
+  );
+}
+
+/**
+ * Sub-componente para el contenido de la guía, 
+ * compartido entre vista previa e impresión real.
+ */
+function PrintContent({ guia, config, profile, copyLabel, copyKey, formatCurrency }: { guia: GuiaData; config: any; profile: any; copyLabel: string; copyKey: string; formatCurrency: (a: number) => string }) {
+  return (
+    <div className="h-full flex flex-col">
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex gap-4 items-center">
+          {config?.logo_url ? (
+            <img src={config.logo_url} alt="Logo" className="max-h-16 w-auto" />
+          ) : (
+            <div className="size-16 rounded border flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 font-bold uppercase">Logo</div>
+          )}
+          <div className="flex flex-col">
+            <h1 className="text-xl font-black uppercase text-slate-900 leading-tight">{config?.nombre_empresa || 'Gravoka SpA'}</h1>
+            <p className="text-xs font-bold">{config?.rut || 'RUT 77.XXX.XXX-X'}</p>
+            <p className="text-[10px] text-slate-500">{config?.direccion || 'Matriz de Operaciones'}</p>
+          </div>
+        </div>
+        <div className="text-right border-2 border-red-500 p-3 rounded shrink-0">
+          <h3 className="text-red-500 font-bold text-[10px] uppercase">GUÍA DE DESPACHO INTERNA</h3>
+          <p className="text-lg font-mono font-black italic underline decoration-red-500/30">N° {(guia.numero_guia || 0).toString().padStart(6, '0')}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-8 my-8 mt-6">
+        <div className="border p-4 rounded bg-slate-50 border-slate-200">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Cliente</h4>
+          <p className="font-black text-md uppercase text-slate-900 leading-tight">{guia.cliente_nombre}</p>
+          <p className="text-[11px] font-bold mt-1 uppercase text-slate-600"><b>OBRA:</b> {guia.obra || 'Despacho Directo'}</p>
+          <p className="text-[11px] font-bold uppercase text-slate-600"><b>O.C.:</b> {guia.orden_compra || '-'}</p>
+        </div>
+        <div className="border p-4 rounded bg-slate-50 border-slate-200">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Transporte</h4>
+          <p className="text-[11px] font-black text-slate-800 uppercase"><b>PATENTE:</b> {guia.camion_patente}</p>
+          <p className="text-[11px] font-black text-slate-800 uppercase mt-1"><b>CONDUCTOR:</b> {guia.conductor_nombre}</p>
+          <p className="text-[11px] font-black text-slate-800 mt-1 uppercase"><b>FECHA/HORA:</b> {guia.creado_en ? (typeof guia.creado_en.toDate === 'function' ? guia.creado_en.toDate().toLocaleString('es-CL') : new Date(guia.creado_en).toLocaleString('es-CL')) : new Date().toLocaleString('es-CL')}</p>
+        </div>
+      </div>
+
+      <table className="w-full border-collapse border border-slate-300">
+        <thead>
+          <tr className="bg-slate-100/80">
+            <th className="border-b-2 border-slate-300 border-r p-3 text-left text-[11px] font-black uppercase text-slate-600">Material</th>
+            <th className="border-b-2 border-slate-300 border-r p-3 text-center text-[11px] font-black uppercase text-slate-600">Cantidad</th>
+            <th className="border-b-2 border-slate-300 p-3 text-right text-[11px] font-black uppercase text-slate-600">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-b border-slate-200">
+            <td className="p-4 text-[15px] font-black uppercase text-slate-900 border-r border-slate-200">
+              {guia.material_nombre}
+              <div className="text-[10px] text-slate-400 font-bold mt-1">P. UNIT: {formatCurrency(guia.precio_unitario_aplicado || 0)}</div>
+            </td>
+            <td className="p-4 text-center text-2xl font-black text-slate-800 border-r border-slate-200">{guia.cantidad} m³</td>
+            <td className="p-4 text-right text-xl font-black text-slate-900">{formatCurrency(guia.total_estimado)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {(guia.nro_factura || guia.factura) && (
+        <div className="mt-8 p-3 border-2 border-cyan-500/30 rounded-lg text-center bg-cyan-50/30">
+          <p className="text-sm font-black text-cyan-600 uppercase tracking-widest">Factura Asociada: {guia.nro_factura || guia.factura}</p>
+        </div>
+      )}
+
+      <div className="mt-auto pt-10">
+        <div className="flex justify-between items-end mb-8">
+          <div className="flex flex-col gap-1 text-[10px] text-slate-500 font-bold italic">
+            <span>PAGO: {String(guia.metodo_pago || 'CREDITO').toUpperCase()}</span>
+            <span>EMITIDO POR: {profile?.nombre || 'SISTEMA'}</span>
+            <span>VERSION: GRAVOKA SaaS v4.5</span>
+          </div>
+          
+          <div className="flex gap-12 items-end">
+            {copyKey === 'internal' && (
+              <div className="text-center w-48 border-t-2 border-slate-900 pt-2">
+                <p className="text-[10px] font-black uppercase text-slate-900">Recibe Conforme</p>
+              </div>
+            )}
+            {copyKey === 'internal' && (
+              <div className="text-center w-48 border-t-2 border-slate-900 pt-2">
+                <p className="text-[10px] font-black uppercase text-slate-900">Entrega Conforme</p>
+              </div>
+            )}
+            <div className="bg-slate-900 text-white px-5 py-2 text-xs font-black rounded-xl shadow-lg uppercase tracking-tight">
+              {copyLabel}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
