@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { createTenantAction } from '@/app/actions/tenantActions';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 
 import { getSaaSGlobalStats, SaaSStats } from '@/lib/saas-stats';
@@ -59,6 +59,9 @@ export default function SuperAdminPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  
+  const [selectedEmpresa, setSelectedEmpresa] = useState<Empresa | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -71,6 +74,45 @@ export default function SuperAdminPage() {
       }
     }
   }, [user, profile, loading, router]);
+
+  const toggleEstado = async (id: string, current: string) => {
+    try {
+      const nuevoEstado = current === 'activo' ? 'inactivo' : 'activo';
+      await updateDoc(doc(db, 'empresas', id), { estado: nuevoEstado });
+      loadData();
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
+  const handleEdit = (empresa: Empresa) => {
+    setSelectedEmpresa(empresa);
+    setIsEditModalOpen(true);
+  };
+
+  const saveChanges = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedEmpresa) return;
+    
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+    const updates = {
+      nombre: formData.get('nombre') as string,
+      rut: formData.get('rut') as string,
+      plan_activo: formData.get('plan') as string,
+      fecha_vencimiento: new Date(formData.get('vencimiento') as string)
+    };
+
+    try {
+      await updateDoc(doc(db, 'empresas', selectedEmpresa.id), updates);
+      setIsEditModalOpen(false);
+      loadData();
+    } catch (err) {
+      console.error("Error updating empresa:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const loadData = async () => {
     setIsLoadingData(true);
@@ -114,7 +156,80 @@ export default function SuperAdminPage() {
   ].filter(d => d.value > 0) : [];
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4 md:px-10 py-8 space-y-10">
+    <div className="w-full max-w-[1600px] mx-auto px-4 md:px-10 py-8 space-y-10 relative">
+      
+      {/* Edit Modal */}
+      {isEditModalOpen && selectedEmpresa && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8">
+              <h2 className="text-2xl font-black mb-2">Editar Empresa</h2>
+              <p className="text-slate-500 text-sm mb-8">Modifica los parámetros principales del cliente.</p>
+              
+              <form onSubmit={saveChanges} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400">Nombre de la Empresa</label>
+                  <input 
+                    name="nombre"
+                    defaultValue={selectedEmpresa.nombre}
+                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400">RUT</label>
+                  <input 
+                    name="rut"
+                    defaultValue={selectedEmpresa.rut}
+                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Plan SaaS</label>
+                    <select 
+                      name="plan"
+                      defaultValue={selectedEmpresa.plan_activo}
+                      className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold appearance-none"
+                    >
+                      <option value="Startup">Startup</option>
+                      <option value="Full">Full</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Vencimiento</label>
+                    <input 
+                      name="vencimiento"
+                      type="date"
+                      defaultValue={selectedEmpresa.fecha_vencimiento?.seconds ? new Date(selectedEmpresa.fecha_vencimiento.seconds * 1000).toISOString().split('T')[0] : (selectedEmpresa.fecha_vencimiento ? new Date(selectedEmpresa.fecha_vencimiento).toISOString().split('T')[0] : '')}
+                      className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="flex-1 py-4 font-black uppercase text-xs tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 py-4 bg-primary text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -252,11 +367,19 @@ export default function SuperAdminPage() {
                       </td>
                       <td className="px-4 md:px-8 py-6 text-right">
                         <div className="flex items-center justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                          <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-primary transition-colors">
+                          <button 
+                            onClick={() => handleEdit(empresa)}
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-primary transition-colors"
+                          >
                             <span className="material-symbols-outlined text-[18px]">edit</span>
                           </button>
-                          <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-500 transition-colors">
-                            <span className="material-symbols-outlined text-[18px]">block</span>
+                          <button 
+                            onClick={() => toggleEstado(empresa.id, empresa.estado)}
+                            className={`p-2 rounded-lg transition-colors ${empresa.estado === 'activo' ? 'hover:bg-red-50 text-slate-400 hover:text-red-500' : 'hover:bg-emerald-50 text-slate-400 hover:text-emerald-500'}`}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">
+                              {empresa.estado === 'activo' ? 'block' : 'check_circle'}
+                            </span>
                           </button>
                         </div>
                       </td>
