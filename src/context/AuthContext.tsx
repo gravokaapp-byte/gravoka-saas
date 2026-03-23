@@ -14,6 +14,7 @@ export interface UserProfile {
   plan_deseado?: 'Startup' | 'Full';
   fecha_vencimiento?: string | null;
   es_trial?: boolean;
+  estado?: string; // --- Added estado to profile ---
 }
 
 interface AuthContextType {
@@ -31,6 +32,15 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   logout: async () => {} 
 });
+
+// Helper to parse dates (Firestore Timestamp, ISO string, etc.)
+const parseDate = (dateField: any) => {
+  if (!dateField) return null;
+  if (dateField.seconds) return new Date(dateField.seconds * 1000);
+  if (typeof dateField === 'string') return new Date(dateField);
+  if (dateField instanceof Date) return dateField;
+  return null;
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -71,7 +81,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                       plan_activo: fetchedEmpresaData.plan_activo,
                       plan_deseado: fetchedEmpresaData.plan_deseado,
                       fecha_vencimiento: fetchedEmpresaData.fecha_vencimiento,
-                      es_trial: fetchedEmpresaData.es_trial
+                      es_trial: fetchedEmpresaData.es_trial,
+                      estado: fetchedEmpresaData.estado // --- Correctly sync status ---
                    };
                    setProfile(fetchedProfile);
                 }
@@ -79,7 +90,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           } else {
             console.warn('Usuario sin perfil definido en Firestore.');
             setProfile(null);
-            // Clear cookie if no profile
             document.cookie = 'empresa_id=; path=/; max-age=0';
           }
         } catch (error) {
@@ -92,50 +102,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
 
       // --- Authorization Logic ---
-      const publicPaths = ['/login', '/registro', '/'];
+      const publicPaths = ['/login', '/registro', '/', '/olvide-password'];
       const isPublicPath = publicPaths.includes(pathname);
       
-      // If no user, redirect to login unless on a public page
       if (!currentUser) {
         if (!isPublicPath) {
-          router.push('/login');
+          router.replace('/login');
         }
-        return; // Stop further checks for unauthenticated users
+        return;
       }
 
-      // Let SuperAdmin through everything (if we define admin by email or role)
-      if (fetchedProfile?.rol === 'superadmin' || pathname === '/admin') {
-        // If a superadmin is on the login page, redirect to dashboard
-        if (pathname === '/login') {
-          router.push('/');
-        }
-        return; // Don't redirect superadmins away from their panel
+      // Bypass checks for Superadmin or Admin routes
+      const isSuperadmin = fetchedProfile?.rol === 'superadmin';
+      if (isSuperadmin || pathname === '/admin') {
+        if (pathname === '/login') router.replace('/');
+        return;
       }
 
-      // SaaS Paywall Logic (Block suspended/inactive tenants)
-      if (fetchedEmpresaData && fetchedEmpresaData.status !== 'activo' && fetchedEmpresaData.estado !== 'activo') {
-        // If they are not active, they can ONLY visit the subscription page (or login/API routes)
+      // --- SaaS Restriction Logic (HARD BLOCK) ---
+      const status = fetchedEmpresaData?.estado;
+      const expiryDate = fetchedEmpresaData?.fecha_vencimiento ? parseDate(fetchedEmpresaData.fecha_vencimiento) : null;
+      
+      const isInactive = status === 'inactivo';
+      const isExpired = expiryDate && expiryDate < new Date();
+
+      if (fetchedEmpresaData && (isInactive || isExpired)) {
         if (pathname !== '/suscripcion' && !pathname.startsWith('/api')) {
-          console.warn('Redirecting inactive tenant to /suscripcion');
-          router.push('/suscripcion');
+          console.warn(`Redirecting blocked tenant: Inactive=${isInactive}, Expired=${isExpired}`);
+          router.replace('/suscripcion');
           return;
         }
       }
 
-      // Standard user redirects
-      // If authenticated user is on login page, redirect to dashboard
-      if (currentUser && pathname === '/login') {
-        router.push('/');
-        return;
-      }
-
-      // If authenticated user is on root and company is active, redirect to dashboard
-      // If authenticated user is on root and company is active, stay there (Dashboard)
-      if (currentUser && pathname === '/') {
-        if (fetchedEmpresaData?.estado !== 'activo') {
-          router.push('/suscripcion');
-        }
-        return;
+      if (pathname === '/login') {
+        router.replace('/');
       }
     });
 
@@ -148,7 +148,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       await signOut(auth);
-      // Clear cookie
       document.cookie = 'empresa_id=; path=/; max-age=0';
       router.push('/login');
     } catch (error) {
@@ -164,16 +163,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  const publicPaths = ['/login', '/registro', '/'];
+  // --- Main Render Render-Blocking logic ---
+  const publicPaths = ['/login', '/registro', '/', '/olvide-password'];
   const isPublicPath = publicPaths.includes(pathname);
+  const isSuperadmin = profile?.rol === 'superadmin';
+  const isSuscripcionPath = pathname === '/suscripcion';
   
-  const effectivePlan = (profile?.plan_activo === 'Full' && profile?.fecha_vencimiento) 
-    ? (new Date(profile.fecha_vencimiento) > new Date() ? 'Full' : (profile?.plan_deseado || 'Startup'))
-    : profile?.plan_activo || 'Startup';
+  // Calculate restriction based on profile state (available during render)
+  const expiry = parseDate(profile?.fecha_vencimiento);
+  const isExpired = expiry && expiry < new Date();
+  const isInactive = profile?.estado === 'inactivo';
+  const isRestricted = !isSuperadmin && (isInactive || isExpired);
 
+  // 1. If not logged in and not public -> block rendering (useEffect will redirect)
   if (!user && !isPublicPath) {
     return null;
   }
+
+  // 2. If restricted and NOT on /suscripcion -> block rendering (useEffect will redirect)
+  if (user && isRestricted && !isSuscripcionPath && !pathname.startsWith('/api') && pathname !== '/admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="text-slate-500 font-medium">Redirigiendo a suscripción...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const effectivePlan = (profile?.plan_activo === 'Full' && expiry) 
+    ? (expiry > new Date() ? 'Full' : (profile?.plan_deseado || 'Startup'))
+    : profile?.plan_activo || 'Startup';
 
   return <AuthContext.Provider value={{ user, profile, effectivePlan, loading, logout }}>{children}</AuthContext.Provider>;
 };

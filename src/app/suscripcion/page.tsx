@@ -37,6 +37,12 @@ export default async function SuscripcionPage({
     console.error("Error al cargar precios SaaS:", e);
   }
 
+  // --- Lógica de Bloqueo ---
+  const rawDate = empresaData?.fecha_vencimiento || empresaData?.vencimiento;
+  const expiryDate = rawDate?.seconds ? new Date(rawDate.seconds * 1000) : (rawDate ? new Date(rawDate) : null);
+  const isExpired = expiryDate && expiryDate < new Date();
+  const isInactive = empresaData?.estado !== 'activo';
+
   return (
     <div className="pt-8 min-h-screen bg-gray-50 dark:bg-slate-900">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -49,6 +55,21 @@ export default async function SuscripcionPage({
             Comienza con una <strong>Prueba Gratuita de 15 días del Plan Full</strong> sin compromiso.
           </p>
         </div>
+
+        {(isInactive || isExpired) && (
+          <div className="mb-8 p-6 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-3xl text-red-700 dark:text-red-400 text-sm font-bold flex gap-4 items-center animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="size-12 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center text-red-600">
+              <span className="material-symbols-outlined text-2xl">error</span>
+            </div>
+            <div>
+              <p className="text-base uppercase tracking-tight">Acceso Restringido</p>
+              <p className="font-medium opacity-80">
+                {isInactive ? 'Tu cuenta ha sido desactivada por el administrador.' : 'Tu suscripción ha vencido.'} 
+                {isExpired && ' Renueva tu plan para continuar operando.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {error === 'mercadopago_not_configured' && (
           <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-bold flex gap-3 items-center">
@@ -145,17 +166,18 @@ export default async function SuscripcionPage({
             <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-slate-700">
               <span className="text-gray-500 dark:text-gray-400 font-medium">Estado:</span>
               <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                empresaData?.estado === 'activo' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                (isInactive || isExpired) ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
               }`}>
-                {empresaData?.estado === 'activo' ? 'Activo' : 'Inactivo / Moroso'}
+                {isInactive ? 'Inactivo / Suspendido' : (isExpired ? 'Suscripción Vencida' : 'Activo')}
               </span>
             </div>
-            {empresaData?.fecha_vencimiento && (
+            {expiryDate && (
               <div className="flex justify-between items-center py-3">
                 <span className="text-gray-500 dark:text-gray-400 font-medium">Vencimiento:</span>
-                <span className="text-gray-900 dark:text-white font-semibold">
-                  {new Date(empresaData.fecha_vencimiento.seconds * 1000).toLocaleDateString('es-CL')}
+                <span className={`font-semibold ${isExpired ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
+                  {expiryDate.toLocaleDateString('es-CL')}
+                  {isExpired && ' (Vencido)'}
                 </span>
               </div>
             )}
