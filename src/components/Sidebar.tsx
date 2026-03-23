@@ -43,9 +43,9 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean, setIs
       )}
 
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 lg:w-64 bg-slate-custom-900 dark:bg-black text-white flex flex-col h-full border-r border-slate-custom-800 transition-transform duration-300 transform
+        fixed inset-y-0 left-0 z-50 w-72 bg-slate-custom-900 dark:bg-black text-white flex flex-col h-full border-r border-slate-custom-800 transition-transform duration-300 transform
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:static lg:translate-x-0 lg:inset-0
+        lg:relative lg:translate-x-0 lg:w-64 lg:inset-0
       `}>
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">

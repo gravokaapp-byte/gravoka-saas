@@ -702,14 +702,14 @@ export default function Dashboard() {
                 {daysRemaining() === null ? 'Pendiente' : `${daysRemaining()} días`}
               </p>
             </div>
-            <button className="px-4 py-2 bg-primary text-white rounded-xl font-black text-[10px] md:text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+            <Link href="/suscripcion" className="px-4 py-2 bg-primary text-white rounded-xl font-black text-[10px] md:text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all text-center">
               Renovar
-            </button>
+            </Link>
           </div>
         </div>
       )}
       {/* KPI Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
         <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] md:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ventas Totales</span>
@@ -822,8 +822,8 @@ export default function Dashboard() {
             Nueva Guía
           </Link>
         </div>
-        <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full min-w-[700px] text-left">
+        <div className="overflow-x-auto scrollbar-none md:scrollbar-thin">
+          <table className="w-full min-w-full md:min-w-[700px] text-left">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50">
                 <th className="px-4 md:px-6 py-3 text-[10px] md:text-xs font-black text-slate-500 uppercase w-[80px] md:w-auto">Doc</th>

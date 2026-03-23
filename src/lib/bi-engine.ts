@@ -18,13 +18,17 @@ export interface GuiaData {
   destino?: string;
   numero_guia?: number;
   obra?: string;
+  orden_compra?: string;
+  nro_factura?: string;
+  factura?: string;
+  precio_unitario_aplicado?: number;
 }
 
 
 export const processBIStats = (guias: GuiaData[]) => {
   const filteredGuias = guias.filter(g => g.estado !== 'Anulada');
 
-  // 1. Top Camiones por Vueltas
+  // 1. Truck Stats
   const truckStats: Record<string, { vueltas: number, m3: number }> = {};
   filteredGuias.forEach(g => {
     const key = g.camion_patente || 'Desconocido';
@@ -32,66 +36,66 @@ export const processBIStats = (guias: GuiaData[]) => {
     truckStats[key].vueltas += 1;
     truckStats[key].m3 += g.cantidad;
   });
-  const topTrucks = Object.entries(truckStats)
+  const allTrucks = Object.entries(truckStats)
     .map(([patente, stats]) => ({ patente, ...stats }))
-    .sort((a, b) => b.vueltas - a.vueltas)
-    .slice(0, 5);
+    .sort((a, b) => b.vueltas - a.vueltas);
 
-  // 2. Top Clientes (M3, Ganancia y Margen)
-  const clientStats: Record<string, { m3: number, ganancia: number, freight: number, margin: number }> = {};
+  // 2. Client Stats (Profitability)
+  const clientStats: Record<string, { m3: number, revenue: number, freight: number, margin: number, margin_percent: number }> = {};
   filteredGuias.forEach(g => {
     const key = g.cliente_nombre || 'S/N';
-    if (!clientStats[key]) clientStats[key] = { m3: 0, ganancia: 0, freight: 0, margin: 0 };
+    if (!clientStats[key]) clientStats[key] = { m3: 0, revenue: 0, freight: 0, margin: 0, margin_percent: 0 };
     const freight = g.flete_costo || 0;
-    const ganancia = g.total_estimado - freight;
+    const revenue = g.total_estimado || 0;
     clientStats[key].m3 += g.cantidad;
     clientStats[key].freight += freight;
-    clientStats[key].ganancia += ganancia;
-    clientStats[key].margin = (clientStats[key].ganancia / (clientStats[key].ganancia + clientStats[key].freight)) * 100;
+    clientStats[key].revenue += revenue;
+    clientStats[key].margin = clientStats[key].revenue - clientStats[key].freight;
+    clientStats[key].margin_percent = clientStats[key].revenue > 0 
+      ? (clientStats[key].margin / clientStats[key].revenue) * 100 
+      : 0;
   });
-  const topClients = Object.entries(clientStats)
+  const allClients = Object.entries(clientStats)
     .map(([nombre, stats]) => ({ nombre, ...stats }))
-    .sort((a, b) => b.ganancia - a.ganancia)
-    .slice(0, 5);
+    .sort((a, b) => b.margin - a.margin);
 
-  // 3. Top Productos (M3)
+  // 3. Product Stats
   const productStats: Record<string, number> = {};
   filteredGuias.forEach(g => {
     const key = g.material_nombre || 'S/N';
     if (!productStats[key]) productStats[key] = 0;
     productStats[key] += g.cantidad;
   });
-  const topProducts = Object.entries(productStats)
+  const allProducts = Object.entries(productStats)
     .map(([nombre, m3]) => ({ nombre, m3 }))
-    .sort((a, b) => b.m3 - a.m3)
-    .slice(0, 5);
+    .sort((a, b) => b.m3 - a.m3);
 
-  // 5. Productividad por Chofer
-  const driverStats: Record<string, { vueltas: number, m3: number }> = {};
+  // 4. Driver Stats (Performance)
+  const driverStats: Record<string, { viajes: number, m3: number, flete: number, efficiency: number }> = {};
   filteredGuias.forEach(g => {
     const key = g.conductor_nombre || 'Desconocido';
-    if (!driverStats[key]) driverStats[key] = { vueltas: 0, m3: 0 };
-    driverStats[key].vueltas += 1;
+    if (!driverStats[key]) driverStats[key] = { viajes: 0, m3: 0, flete: 0, efficiency: 0 };
+    driverStats[key].viajes += 1;
     driverStats[key].m3 += g.cantidad;
+    driverStats[key].flete += (g.flete_costo || 0);
+    driverStats[key].efficiency = driverStats[key].m3 / driverStats[key].viajes;
   });
-  const topDrivers = Object.entries(driverStats)
+  const allDrivers = Object.entries(driverStats)
     .map(([nombre, stats]) => ({ nombre, ...stats }))
-    .sort((a, b) => b.vueltas - a.vueltas)
-    .slice(0, 5);
+    .sort((a, b) => b.viajes - a.viajes);
 
-  // 6. Volumen por Destino
+  // 5. Destination Stats
   const destinationStats: Record<string, number> = {};
   filteredGuias.forEach(g => {
     const key = g.destino || 'Sin Destino';
     if (!destinationStats[key]) destinationStats[key] = 0;
     destinationStats[key] += g.cantidad;
   });
-  const topDestinations = Object.entries(destinationStats)
+  const allDestinations = Object.entries(destinationStats)
     .map(([nombre, m3]) => ({ nombre, m3 }))
-    .sort((a, b) => b.m3 - a.m3)
-    .slice(0, 5);
+    .sort((a, b) => b.m3 - a.m3);
 
-  // 4. Ventas Semanales (Gráfico)
+  // 6. Weekly Sales
   const dailyStats: Record<string, number> = {};
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = subDays(new Date(), i);
@@ -115,12 +119,16 @@ export const processBIStats = (guias: GuiaData[]) => {
   }));
 
   return {
-    topTrucks,
-    topClients,
-    topProducts,
-    topDrivers,
-    topDestinations,
+    allTrucks,
+    allClients,
+    allProducts,
+    allDrivers,
+    allDestinations,
     weeklySalesData,
+    topTrucks: allTrucks.slice(0, 5),
+    topClients: allClients.slice(0, 5),
+    topProducts: allProducts.slice(0, 5),
+    topDrivers: allDrivers.slice(0, 5),
     summary: {
       volume: filteredGuias.reduce((acc, g) => acc + g.cantidad, 0),
       revenue: filteredGuias.reduce((acc, g) => acc + g.total_estimado, 0),

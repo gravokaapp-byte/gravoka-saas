@@ -390,12 +390,12 @@ export default function GuiasPage() {
               </div>
 
               {/* Método de Pago */}
-              <div className="md:col-span-2 flex flex-col gap-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="md:col-span-2 flex flex-col gap-6 bg-white dark:bg-slate-900/50 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary">payments</span>
                   Método de Pago
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
                   <button 
                     onClick={() => setPaymentMethod('credito')}
                     className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold ${
@@ -435,15 +435,11 @@ export default function GuiasPage() {
                   <div className="flex flex-col gap-4">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">TIPO DE DOCUMENTO</span>
                     <div className="flex gap-2">
-                      {['guia', 'factura', 'boleta'].map((type) => (
+                      {['guia'].map((type) => (
                         <button
                           key={type}
-                          onClick={() => setDocumentType(type as any)}
-                          className={`flex-1 py-3 rounded-lg border-2 text-[10px] font-black uppercase transition-all ${
-                            documentType === type 
-                              ? 'border-primary bg-primary text-white' 
-                              : 'border-slate-200 dark:border-slate-700 text-slate-400'
-                          }`}
+                          disabled
+                          className="flex-1 py-3 rounded-lg border-2 border-primary bg-primary text-white text-[10px] font-black uppercase transition-all opacity-50 cursor-not-allowed"
                         >
                           {type}
                         </button>
@@ -512,21 +508,21 @@ export default function GuiasPage() {
             ].map((copy, index) => (
               <div key={copy.key} className="print-copy">
                 
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                   <div className="flex gap-4 items-center">
                     {config?.logo_url ? (
                       <img src={config.logo_url} alt="Logo" className="max-h-16 w-auto" />
                     ) : (
                       <div className="size-16 rounded border flex items-center justify-center bg-slate-100 text-[10px] text-slate-400 font-bold uppercase">Gravoka</div>
                     )}
-                    <div>
-                      <h1 className="text-xl font-black uppercase text-slate-900">{config?.nombre_empresa || 'Gravoka SpA'}</h1>
+                    <div className="flex flex-col">
+                      <h1 className="text-xl font-black uppercase text-slate-900 leading-tight">{config?.nombre_empresa || 'Gravoka SpA'}</h1>
                       <p className="text-xs font-bold">{config?.rut || 'RUT 77.XXX.XXX-X'}</p>
                       <p className="text-[10px] text-slate-500">{config?.direccion || 'Matriz de Operaciones'}</p>
                     </div>
                   </div>
-                  <div className="text-right border-2 border-red-500 p-3 rounded">
-                    <h3 className="text-red-500 font-bold text-sm">GUÍA DE DESPACHO ELECTRÓNICA</h3>
+                  <div className="text-right border-2 border-red-500 p-3 rounded shrink-0 w-full sm:w-auto">
+                    <h3 className="text-red-500 font-bold text-[10px] sm:text-xs">GUÍA DE DESPACHO ELECTRÓNICA</h3>
                     <p className="text-lg font-mono font-black italic">N° {(guiaNumero ?? 0).toString().padStart(6, '0')}</p>
                   </div>
                 </div>
@@ -535,8 +531,8 @@ export default function GuiasPage() {
                   <div className="border p-3 rounded bg-slate-50">
                     <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Cliente</h4>
                     <p className="font-black text-md uppercase">{selectedClientId === 'esporadico' ? manualClientName : clients.find(c => c.id === selectedClientId)?.name}</p>
-                    <p className="text-[10px]"><b>OBRA:</b> {obra}</p>
-                    {ordenCompra && <p className="text-[10px]"><b>O.C.:</b> {ordenCompra}</p>}
+                    <p className="text-[10px]"><b>OBRA:</b> {obra || 'Despacho Directo'}</p>
+                    <p className="text-[10px]"><b>O.C.:</b> {ordenCompra || '-'}</p>
                   </div>
                   <div className="border p-3 rounded bg-slate-50">
                     <h4 className="text-[10px] font-black text-slate-400 uppercase mb-1">Transporte</h4>
@@ -568,7 +564,7 @@ export default function GuiasPage() {
 
                 {nroFactura && (
                   <div className="mt-4 p-2 border-2 border-primary/30 rounded text-center">
-                    <p className="text-[10px] font-black text-primary uppercase">Documento Associado Nro: {nroFactura}</p>
+                    <p className="text-[10px] font-black text-primary uppercase">Factura Asociada: {nroFactura}</p>
                   </div>
                 )}
 
@@ -636,7 +632,7 @@ export default function GuiasPage() {
             visibility: visible !important;
           }
           .print-copy {
-            width: 100vw;
+            width: 100%;
             height: 100vh;
             padding: 1.5cm;
             display: flex !important;
@@ -647,6 +643,10 @@ export default function GuiasPage() {
             box-sizing: border-box;
             background: white !important;
             color: black !important;
+          }
+          .print-copy:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
           .print-copy:last-child {
             page-break-after: avoid !important;
