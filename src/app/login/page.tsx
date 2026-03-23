@@ -1,15 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const router = useRouter();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -22,6 +25,27 @@ export default function LoginPage() {
       router.push('/');
     } catch (err: any) {
       setError('Credenciales incorrectas o usuario no encontrado.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Por favor, ingresa tu correo electrónico para restablecer la contraseña.');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    setResetSent(false);
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetSent(true);
+    } catch (err: any) {
+      setError('Error al enviar el correo de restablecimiento. Verifica el correo e intenta nuevamente.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -68,6 +92,12 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+
+            {resetSent && (
+              <div className="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 p-4 rounded-xl text-sm font-medium">
+                Correo de restablecimiento enviado. Revisa tu bandeja de entrada.
+              </div>
+            )}
             
             <div>
               <label htmlFor="email" className="block text-sm font-bold text-slate-700 dark:text-slate-300">
@@ -92,18 +122,25 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-sm font-bold text-slate-700 dark:text-slate-300">
                 Contraseña
               </label>
-              <div className="mt-2">
+              <div className="mt-2 relative">
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors"
+                  className="appearance-none block w-full px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors pr-11"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
             </div>
 
@@ -121,9 +158,13 @@ export default function LoginPage() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-bold text-primary hover:text-primary/80">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="font-bold text-primary hover:text-primary/80 transition-colors"
+                >
                   ¿Olvidaste tu contraseña?
-                </a>
+                </button>
               </div>
             </div>
 
