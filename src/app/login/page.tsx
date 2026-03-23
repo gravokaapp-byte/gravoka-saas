@@ -42,6 +42,7 @@ export default function LoginPage() {
     setResetSent(false);
 
     try {
+      auth.languageCode = 'es';
       await sendPasswordResetEmail(auth, email);
       setResetSent(true);
     } catch (err: any) {
